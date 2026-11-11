@@ -29,6 +29,8 @@ Hold **D-pad right**, then press **L2/R2** to select the previous/next sound. Ea
 4. Switch instrument and record another track, or record again to add a layer.
 5. **Select + Start** exits and saves your settings and Loop.
 
+Recording starts after a visible four-beat count-in with audible clicks and a distinct recording downbeat. Beat clicks continue during recording. Slightly early attacks are captured on the first beat, and cue clicks stay outside the recorded tracks.
+
 Hold D-pad right first to display the available shortcuts:
 
 | Right + | Action |
@@ -41,7 +43,7 @@ Hold D-pad right first to display the available shortcuts:
 | L2 / R2 | Previous / next sound |
 | D-pad up / down | Increase / decrease the fixed octave |
 
-For pitched instruments, hold **D-pad up/down** for a temporary octave change or **D-pad left** to raise notes by one semitone. Each new note captures the current octave and semitone. A modifier pressed within 30 ms of the attack joins the same gesture, with an immediate pitch change. Held notes and release tails keep that pitch when the modifier changes. Expressive keeps its starting register until you release L1 or center the stick; moving the right stick still changes the melody.
+For pitched instruments, hold **D-pad up/down** for a temporary octave change or **D-pad left** to raise notes by one semitone. Each new note captures the current octave and semitone. A modifier pressed within 50 ms of the attack joins the same gesture, with an immediate pitch change. Held notes and release tails keep that pitch when the modifier changes. Expressive keeps its starting register until you release L1 or center the stick; moving the right stick still changes the melody.
 
 Loop supports one or two bars, overdubbing, undo, quantization and four independent tracks. Pitched tracks support four layers each. Bar and beat indicators follow playback, and tails continue into the next loop. Reopened performances start paused; wait for preparation to finish, then press right + A to play.
 

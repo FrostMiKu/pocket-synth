@@ -34,6 +34,24 @@ void drawLoopStatus(SDL_Renderer* r,const Settings& s,const Settings& playing,co
         text(r,x+8,101,detail,1,muted);
     }
 }
+void drawRecordingCue(SDL_Renderer* r,const LoopView& loop) {
+    const int beat=recordCountdownBeat(loop);
+    const bool start=loop.recording&&loop.bar()==1&&loop.beat()==1;
+    if(!beat&&!start) return;
+    fill(r,margin,392,contentWidth,48,background);
+    if(start) {
+        const auto color=loop.beatProgress<.25f?gold:mint;
+        centeredText(r,width/2,412,"RECORDING",3,color);
+        fill(r,margin,392,contentWidth,2,color);
+    } else {
+        for(int n=1;n<=loopBeatsPerBar;++n) {
+            const int x=margin+(2*n-1)*contentWidth/(2*loopBeatsPerBar);
+            if(n==beat) fill(r,x-24,396,48,26,selected);
+            centeredText(r,x,409,std::to_string(n),3,n==beat?gold:n<beat?mint:muted);
+        }
+        centeredText(r,width/2,433,"RECORD ON NEXT 1",1,gold);
+    }
+}
 void drawDrumPanel(SDL_Renderer* r,const Settings& s,const Controller& c,const Input& in,const LoopView& loop) {
     const int page=loop.bar()-1;
 

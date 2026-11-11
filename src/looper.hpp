@@ -9,7 +9,7 @@ struct LoopView {
     int tempo=120,bars=1,step=0,countBeat=0,recordTrack=-1;
     bool overdubbing=false,playing=false,recording=false,armed=false,full=false,savedUnavailable=false,preparing=false,starting=false;
     int requestedTempo=120,requestedBars=1;
-    float progress=0;
+    float progress=0,beatProgress=0;
     LoopNotice notice=LoopNotice::None;
     int noticeTrack=-1;
     std::array<int,modeCount> layers{};
@@ -56,6 +56,7 @@ private:
     std::array<Event,8> lastNotes_{};
     std::array<bool,8> noteHeld_{};
     Event lastExpression_{};
+    Events pickup_{};
     size_t takeCount_=0;
     int recordTrack_=-1,takeLayer_=0,tempo_=120,bars_=1,dispatchTrack_=0,lastBeat_=-1;
     Quantize quantize_=Quantize::Drums;
@@ -71,6 +72,7 @@ private:
     void cancelTake();
     double length() const { return bars_*loopStepsPerBar; }
     double stepPerFrame() const { return double(tempo_)*loopStepsPerBeat/(60*sampleRate); }
+    bool capturePickup(Mode,const Event&);
     void beginTake();
     void finishTake();
     void rewind();

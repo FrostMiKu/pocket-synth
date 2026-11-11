@@ -3,6 +3,7 @@
 #include <algorithm>
 namespace ps {
 inline constexpr int loopFileVersion=2;
+inline constexpr double loopPickupSeconds=.050;
 inline constexpr char loopFileMagic[]="POCKET_LOOP";
 constexpr int loopBeatsPerBar=4,loopStepsPerBeat=4;
 constexpr int loopStepsPerBar=loopBeatsPerBar*loopStepsPerBeat,loopEventLimit=4096;

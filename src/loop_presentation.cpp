@@ -21,6 +21,10 @@ std::string loopPosition(const LoopView& loop) {
     const std::string beat=loop.countBeat?"-":std::to_string(loop.beat());
     return "BAR "+bar+"/"+bars+"  BEAT "+beat+"/"+std::to_string(loopBeatsPerBar);
 }
+int recordCountdownBeat(const LoopView& loop) {
+    if(loop.countBeat) return loop.countBeat;
+    return loop.armed&&loop.bar()==loop.bars?loop.beat():0;
+}
 std::string loopState(const LoopView& loop) {
     if(loop.savedUnavailable) return "CHECK LOOP";
     if(loop.full) return "TRACK FULL";

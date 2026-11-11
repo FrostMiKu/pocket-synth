@@ -14,8 +14,9 @@ LoopView Looper::view() const {
     view.playing=playing_; view.recording=recording_; view.armed=armed_; view.recordTrack=recordTrack_; view.full=full_;
     view.overdubbing=recording_&&recordTrack_>=0&&tracks_[recordTrack_].count>0;
     view.progress=float(countIn_>0?(loopStepsPerBar-countIn_)/loopStepsPerBar:phase());
+    view.beatProgress=float(std::fmod((countIn_>0?loopStepsPerBar-countIn_:position_)+1.e-9,loopStepsPerBeat)/loopStepsPerBeat);
     view.notice=notice_; view.noticeTrack=noticeTrack_;
-    view.countBeat=countIn_>0?std::min(loopBeatsPerBar,int((loopStepsPerBar-countIn_)/loopStepsPerBeat)+1):0;
+    view.countBeat=countIn_>0?std::min(loopBeatsPerBar,int((loopStepsPerBar-countIn_+1.e-9)/loopStepsPerBeat)+1):0;
     for(int mode=0;mode<modeCount;++mode) { view.recordable[mode]=canRecord(Mode(mode)); view.layers[mode]=layers(Mode(mode)); view.events[mode]=int(tracks_[mode].count); view.undo[mode]=tracks_[mode].canUndo; }
     if(recording_&&recordTrack_>=0) view.events[recordTrack_]+=int(takeCount_);
     auto mark=[&](const Recorded& e) {

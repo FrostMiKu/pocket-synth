@@ -86,6 +86,7 @@ void draw(SDL_Renderer* r,const Settings& s,const Controller& c,const Input& in,
         }
     }
     drawFooter(r,s,c,in,loop,peak);
+    if(!c.menu()) drawRecordingCue(r,loop);
 }
 bool screenshot(SDL_Renderer* r,const char* path) {
     auto* s=SDL_CreateRGBSurfaceWithFormat(0,width,height,32,SDL_PIXELFORMAT_ARGB8888);

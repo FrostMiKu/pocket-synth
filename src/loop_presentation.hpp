@@ -6,6 +6,7 @@ struct LoopActions {
     bool canRecord=true,canUndo=false,canClear=false;
 };
 LoopActions loopActions(const LoopView&,Mode);
+int recordCountdownBeat(const LoopView&);
 std::string loopState(const LoopView&);
 std::string loopPosition(const LoopView&);
 std::string loopNotice(const LoopView&);

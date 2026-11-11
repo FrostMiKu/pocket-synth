@@ -27,7 +27,7 @@ Input attack(Mode mode,bool strum=false) {
 }
 void timing() {
     for(Mode mode:{Mode::Guitar,Mode::Keys,Mode::Expressive}) for(Button modifier:{Up,Down,Left})
-    for(double delay:{.005,.015,.029,.031,.080}) for(bool strum:{false,true}) {
+    for(double delay:{.005,.031,.049,.051,.080}) for(bool strum:{false,true}) {
         if(strum&&mode!=Mode::Guitar) continue;
         Settings s; s.mode=mode; Controller c; Input input=attack(mode,strum);
         const auto onset=c.update(input,s,0);
@@ -36,7 +36,7 @@ void timing() {
         const int count=corrections(c.update(input,s,delay),&delta);
         const int voices=strum?6:1;
         const int shift=modifier==Up?12:modifier==Down?-12:1;
-        check(delay<.030?count==voices&&delta==voices*shift:count==0,
+        check(delay<.050?count==voices&&delta==voices*shift:count==0,
               "near-simultaneous modifiers join the attack while later presses preserve sustain");
         input.held[modifier]=false;
         check(corrections(c.update(input,s,delay+.001))==0,"releasing a modifier keeps the established pitch");

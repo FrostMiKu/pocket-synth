@@ -2,7 +2,7 @@
 #include "music.hpp"
 #include <algorithm>
 namespace ps {
-inline constexpr double pitchGestureSeconds=.030;
+inline constexpr double pitchGestureSeconds=.050;
 enum PitchModifier { OctaveUp=1,OctaveDown=2,SemitoneUp=4 };
 inline int modifiedOctave(int base,int modifiers) {
     return std::clamp(base+int(bool(modifiers&OctaveUp))-int(bool(modifiers&OctaveDown)),minOctave,maxOctave);

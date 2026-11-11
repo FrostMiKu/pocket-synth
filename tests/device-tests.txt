@@ -8,3 +8,4 @@ sound-tests
 pitch-tests
 guitar-tests
 gesture-tests
+recording-entry-tests
