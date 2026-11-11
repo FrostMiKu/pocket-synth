@@ -172,15 +172,19 @@ static void audioLoop() {
     studio->apply({EventType::Loop,int(LoopCommand::Stop)}); render(*studio,12000);
     check(rms(render(*studio,2048))==0,"global stop releases every loop and live instrument");
 }
-static void strumRetune() {
+static void strumPitches() {
     auto loop=std::make_unique<Looper>(); Settings s; s.tempo=240; loop->configure(s);
     loop->command(LoopCommand::Record,Mode::Guitar); advance(*loop,sampleRate);
-    Event first; first.type=EventType::Pluck; first.note=60; loop->record(Mode::Guitar,first);
-    Event delayed=first; delayed.id=1; delayed.note=67; delayed.delay=480; loop->record(Mode::Guitar,delayed);
-    advance(*loop,240); Event retune; retune.type=EventType::RetuneStrings; retune.bend=1; loop->record(Mode::Guitar,retune);
-    advance(*loop,sampleRate-240);
-    std::vector<Event> events; advance(*loop,1000,&events);
-    check(events.size()==3&&events[0].note==60&&events[1].type==EventType::RetuneStrings&&events[2].note==68,"recorded retuning reaches both ringing and later strum strings");
+    Controller controller; Input input; input.held[Up]=true; input.ry=.9f;
+    const auto stroke=controller.update(input,s,0);
+    for(size_t n=0;n<stroke.count;++n) loop->record(Mode::Guitar,stroke.data[n]);
+    advance(*loop,48); input.held[Up]=false;
+    const auto release=controller.update(input,s,.001);
+    for(size_t n=0;n<release.count;++n) loop->record(Mode::Guitar,release.data[n]);
+    advance(*loop,sampleRate-48);
+    std::vector<Event> events; advance(*loop,4000,&events);
+    check(events.size()==stringCount,"one recorded stroke retains its six string attacks");
+    for(size_t n=0;n<events.size();++n) check(events[n].note==stroke.data[n].note,"loop playback retains every string pitch after modifier release");
 }
 static void melodicOverdubs() {
     auto studio=std::make_unique<Studio>(); Settings s; s.mode=Mode::Expressive; s.tempo=240; studio->configure(s);
@@ -264,7 +268,7 @@ static void mixedPlayback() {
     check(rms(render(*studio,2048))==0,"stopping a layered performance reaches silence");
 }
 int main() {
-    pitchAccuracyAndMute(); shortGatePulses(); drums(); controls(); transport(); audioLoop(); strumRetune(); melodicOverdubs(); guitarOverdubs(); tempoAndCapacity(); mixedPlayback();
+    pitchAccuracyAndMute(); shortGatePulses(); drums(); controls(); transport(); audioLoop(); strumPitches(); melodicOverdubs(); guitarOverdubs(); tempoAndCapacity(); mixedPlayback();
     std::printf("Loop and drum behavior: %d checks, %d failures\n",checks,failures);
     return failures?1:0;
 }

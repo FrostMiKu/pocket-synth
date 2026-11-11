@@ -10,7 +10,7 @@ Controller applies shared face-button mapping, pitch modifiers and Meta commands
 
 The immutable catalog in `sound_catalog.cpp` owns stable IDs, saved keys, display names, instrument families, defaults and model parameters. Navigation, settings and presentation reference this catalog. Add a data row to extend an existing model; a new synthesis method belongs in its own model module.
 
-Studio stamps each attack with its selected sound. Engine returns the actual identity of a held note so recording reflects what was performed. MelodyVoice holds a const preset reference for each attack. Sustained harmonics, struck partials and FM use generic model parameters. Keys changes discrete note pitch immediately; Expressive preserves continuous transitions. Bend and vibrato remain independent expression controls.
+Studio stamps each attack with its selected sound. Engine returns the actual identity of a held note so recording reflects what was performed. MelodyVoice holds a const preset reference for each attack. Sustained harmonics, struck partials and FM use generic model parameters. Controller emits Keys attacks on button edges and captures the Expressive transpose at gate onset. Each Guitar stroke schedules six pitches at once. Pitch modifiers apply to future attacks; held voices and release tails retain their performed pitch. Expressive stick movement preserves continuous transitions within the captured register. Bend and vibrato remain independent expression controls.
 
 Guitar uses the DaisySP physical-string model. Drum Machine plays immutable electronic one-shots generated before audio starts. Closed hi-hat chokes open hi-hat. A single output limiter bounds the stereo mix; volume applies at the shared output stage.
 
@@ -32,6 +32,6 @@ Settings save stable sound keys. Current performances use the version-2 schema a
 
 ## Validation
 
-Behavior tests exercise public input, musical output, state and persistence. Sound tests cover catalog identity, navigation, natural decay, held-note continuity, per-note recorded sounds, cached playback and stepped keyboard pitch. The pitch regression compares waveform periodicity during the first 20 ms after a late modifier.
+Behavior tests exercise public input, musical output, state and persistence. Sound tests cover catalog identity, navigation, natural decay, held-note continuity, per-note recorded sounds, cached playback and attack-time pitch selection. Pitch regressions compare rendered audio with a reference continuation, verify independent chord registers, Expressive wheel movement, scheduled strums and recorded pitches.
 
 ASan/UBSan check memory behavior and TSan checks cache ownership. The optional performance target covers full cached tracks with live guitar, keyboard, expressive performance and simultaneous overdub. Device verification uses the shared executable list in `tests/device-tests.txt`. See [validation summary](验收报告.md) and the documented DaisySP adaptations in `vendor/DaisySP/UPSTREAM.md`.

@@ -55,54 +55,23 @@ static void guitar() {
     Engine canceled; canceled.apply(p); canceled.apply({EventType::Silence});
     expect(rms(sound(canceled,4096))==0,"mute cancels a future string");
 }
-static int period(const std::vector<float>& audio,int low,int high) {
-    double best=-2; int lag=0;
-    for(int shift=low;shift<=high;++shift) {
-        double product=0,left=0,right=0;
-        for(size_t n=size_t(shift)*2;n<audio.size();n+=2) {
-            double a=audio[n],b=audio[n-size_t(shift)*2];
-            product+=a*b; left+=a*a; right+=b*b;
-        }
-        double score=left*right>0?product/std::sqrt(left*right):-2;
-        if(score>best) { best=score; lag=shift; }
-    }
-    return lag;
-}
 static void guitarOctaves() {
     Settings s; Controller c; Input i; i.ry=.9f;
-    auto original=c.update(i,s,.01);
-    int first=int(original.data[0].note);
-    double struck=c.stringStrikes()[0].startsAt;
-    i.held[Up]=true; auto raised=c.update(i,s,.02);
-    expect(raised.count==1&&raised.data[0].type==EventType::RetuneStrings&&raised.data[0].bend==12,
-           "holding up retunes ringing guitar strings by one octave");
-    expect(s.octave==4&&c.performanceSettings(s).octave==5,"temporary guitar octave preserves the base register");
-    expect(c.stringStrikes()[0].note==first+12&&c.stringStrikes()[0].startsAt==struck,
-           "string labels retune while the existing pluck continues");
-    expect(c.update(i,s,.03).count==0,"holding up maintains a stable guitar register");
-    i.held[Up]=false;
-    expect(c.update(i,s,.04).data[0].bend==-12,"releasing up restores ringing guitar pitches");
-    i.held[Right]=true;
-    expect(c.update(i,s,.05).count==0&&s.octave==4,"right preserves the guitar register for future controls");
-    expect(c.update(i,s,.06).count==0,"holding right preserves the saved register");
-    i.held[Right]=false; i.ry=0; c.update(i,s,.07); i.ry=-.9;
-    auto next=c.update(i,s,.08);
-    expect(next.data[0].note==original.data[5].note,"subsequent strums use the fixed register");
-    i.held[Down]=true;
-    expect(c.update(i,s,.09).data[0].bend==-12&&s.octave==4,"down temporarily lowers the guitar register");
+    const auto original=c.update(i,s,.01);
+    const auto strike=c.stringStrikes()[0];
     i.held[Up]=true;
-    expect(c.update(i,s,.1).data[0].bend==12,"opposite temporary controls restore the fixed guitar register");
-    Engine e; Event p; p.type=EventType::Pluck; p.note=57; p.velocity=.9f;
-    e.apply(p); sound(e,12000);
-    int before=period(sound(e,8192),200,240);
-    Event retune; retune.type=EventType::RetuneStrings; retune.bend=12;
-    e.apply(retune); sound(e,4000);
-    int after=period(sound(e,8192),95,125);
-    expect(before>0&&after>0&&std::abs(float(before)/after-2)<.15f,"ringing guitar audio rises by an octave");
-    Engine delayed; p.delay=480; delayed.apply(p); delayed.apply(retune);
-    expect(rms(sound(delayed,480))==0,"retuning keeps a scheduled string's attack time");
-    sound(delayed,4000);
-    expect(std::abs(period(sound(delayed,8192),95,125)-after)<4,"scheduled strings adopt the newly selected octave");
+    expect(c.update(i,s,.02).count==0,"octave preview preserves the ringing chord");
+    expect(s.octave==4&&c.performanceSettings(s).octave==5,"temporary octave preserves the saved register");
+    expect(c.stringStrikes()[0].note==strike.note&&c.stringStrikes()[0].startsAt==strike.startsAt,
+           "string feedback retains the performed pitch and attack time");
+    i.ry=0; c.update(i,s,.03); i.ry=.9f;
+    auto raised=c.update(i,s,.04);
+    for(int n=0;n<stringCount;++n) expect(raised.data[n].note==original.data[n].note+12,"a fresh strum uses the selected octave");
+    i.held[Up]=false;
+    expect(c.update(i,s,.05).count==0,"modifier release preserves the raised chord");
+    expect(c.stringStrikes()[0].note==strike.note+12,"raised string feedback lasts with the chord");
+    i.ry=0; c.update(i,s,.06); i.ry=.9f;
+    expect(c.update(i,s,.07).data[0].note==original.data[0].note,"the next strum uses the saved octave");
 }
 static void guitarDecay() {
     for(int octave:{2,4,6}) {
@@ -186,33 +155,18 @@ static void voice() {
     expect(rms(sound(engine,4096))<.00001,"note release reaches silence");
 }
 static void temporaryVoiceOctave() {
-    Settings s; s.mode=Mode::Expressive; Controller c; Input i;
-    i.ry=-1;
+    Settings s; s.mode=Mode::Expressive; Controller c; Input i; i.ry=-1; i.held[Up]=true;
     c.update(i,s,.01);
-    i.held[Up]=true; c.update(i,s,.02);
-    expect(s.octave==4&&c.performanceSettings(s).octave==5,"silent octave preview keeps the saved octave");
+    expect(c.previewPitch()==72&&s.octave==4,"silent preview includes the temporary octave");
     i.held[L1]=true;
-    expect(c.update(i,s,.03).data[0].note==72,"held D-pad up performs an octave higher");
-    expect(c.update(i,s,.04).data[0].note==72,"holding the octave modifier remains stable");
+    expect(c.update(i,s,.02).data[0].note==72,"voice starts at the previewed octave");
     i.held[Up]=false;
-    expect(c.update(i,s,.05).data[0].note==60,"releasing D-pad returns a sounding note to its base octave");
-    i.held[Down]=true;
-    expect(c.update(i,s,.06).data[0].note==48,"held D-pad down performs an octave lower");
-    i.held[Up]=true;
-    expect(c.update(i,s,.07).data[0].note==60,"opposite octave modifiers balance at the base octave");
-    i.held[Down]=false; i.held[Right]=true;
-    expect(c.update(i,s,.08).data[0].note==72&&s.octave==5,"right plus held up makes the octave fixed");
-    i.held[Up]=false; i.held[Right]=false;
-    expect(c.update(i,s,.09).data[0].note==72,"releasing the octave shortcut preserves the fixed register");
-    s.continuousPitch=true; i.rx=.3f; i.ry=-.9f;
-    float base=c.update(i,s,.1).data[0].note;
-    i.held[Up]=true;
-    expect(std::abs(c.update(i,s,.11).data[0].note-base-12)<.001,"temporary octave also transposes continuous pitch");
-    s.octave=6;
-    expect(c.update(i,s,.12).data[0].note<86,"temporary octave respects the upper playable range");
-    c.reset(); expect(c.performanceSettings(s).octave==6,"reset clears the temporary octave");
-    s.octave=2; i.held[Up]=false; i.held[Down]=true; s.continuousPitch=false; i.rx=0; i.ry=-1;
-    expect(c.update(i,s,.13).data[0].note==36&&s.octave==2,"temporary octave respects the lower playable range");
+    expect(c.update(i,s,.03).data[0].note==72,"voice retains its starting octave after modifier release");
+    i.rx=1; i.ry=0;
+    expect(c.update(i,s,.04).data[0].note==76,"wheel movement keeps the starting octave during a phrase");
+    i.held[L1]=false; c.update(i,s,.05); i.held[L1]=true;
+    expect(c.update(i,s,.06).data[0].note==64,"a new phrase adopts the current octave");
+    c.reset(); expect(c.performanceSettings(s).octave==4,"reset clears temporary octave state");
 }
 static void ocarina() {
     Settings s; s.mode=Mode::Keys; Controller c; Input i;
@@ -227,27 +181,16 @@ static void ocarina() {
         engine.apply(on.data[n]);
     }
     expect(rms(sound(engine,12000))>.01,"eight simultaneous notes remain audible and bounded");
-    i.held[Right]=true; auto higher=c.update(i,s,.02);
-    expect(higher.data[0].note==60&&higher.data[7].note==72,"D-pad right preserves held notes");
-    expect(c.update(i,s,.03).data[0].note==60,"holding right preserves the octave");
-    i.held[Right]=false; i.held[Up]=true;
-    auto raised=c.update(i,s,.04);
-    expect(raised.data[0].note==72&&raised.data[7].note==84&&s.octave==4,"D-pad up temporarily raises all eight held notes");
-    expect(s.scale==Scale::Major,"octave modifiers preserve the selected scale");
-    expect(c.update(i,s,.041).data[0].note==72,"holding up keeps a stable temporary octave");
-    i.held[Up]=false;
-    expect(c.update(i,s,.042).data[0].note==60,"releasing up restores the fixed octave");
-    i.held[Down]=true;
-    expect(c.update(i,s,.043).data[0].note==48,"D-pad down temporarily lowers a held note");
     i.held[Up]=true;
-    expect(c.update(i,s,.044).data[0].note==60,"opposite temporary modifiers use the fixed octave");
-    i.held[Up]=false; i.held[Down]=true; i.held[Left]=true;
-    auto lower=c.update(i,s,.05);
-    expect(s.scale==Scale::Major&&lower.data[0].note==49&&s.octave==4,"semitone and temporary octave controls combine independently");
-    i.held[Down]=false; i.held[Left]=false;
-    expect(c.update(i,s,.055).data[0].note==60,"releasing the modifiers restores the saved octave");
-    i.held[A]=false; auto release=c.update(i,s,.06);
-    expect(release.data[0].type==EventType::NoteOff&&release.data[1].type==EventType::NoteOn,"releasing one key preserves other held notes");
+    expect(c.update(i,s,.02).count==1,"held keys keep their initial pitches during octave selection");
+    expect(c.performanceSettings(s).octave==5&&s.scale==Scale::Major,"octave preview preserves the selected scale");
+    i.held[A]=false; auto release=c.update(i,s,.03);
+    expect(release.count==2&&release.data[0].type==EventType::NoteOff,"one key releases while the remaining chord sustains");
+    i.held[A]=true;
+    expect(c.update(i,s,.04).data[0].note==72,"a fresh key press uses the selected octave");
+    i.held[Up]=false;
+    expect(c.update(i,s,.05).count==1,"modifier release sustains the chord at its performed pitches");
+    i.held[A]=false; c.update(i,s,.06);
     i={}; auto rest=c.update(i,s,.07);
     expect(rest.count==8,"remaining seven notes release independently");
     i.held[Select]=true; auto change=c.update(i,s,.08);

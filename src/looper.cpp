@@ -119,16 +119,10 @@ void Looper::record(Mode mode,const Event& e) {
         noteHeld_[e.id]=true; lastNotes_[e.id]=e;
     } else if(e.type==EventType::NoteOff&&e.id>=0&&e.id<8) noteHeld_[e.id]=false;
     else if(e.type==EventType::Silence) noteHeld_.fill(false);
-    if(e.type==EventType::RetuneStrings) {
-        for(size_t n=0;n<takeCount_;++n) {
-            auto& pending=take_[n];
-            if(pending.event.type==EventType::Pluck&&(pending.step>position_||pending.wraps)) pending.event.note+=e.bend;
-        }
-    }
     if(takeCount_>=loopEventLimit) { full_=true; finishTake(); return; }
     double step=position_+e.delay*stepPerFrame();
     const bool quantize=quantize_==Quantize::All||(quantize_==Quantize::Drums&&mode==Mode::Drums);
-    // Expression and retuning retain their continuous performance timing.
+    // Expression retains its continuous performance timing.
     if(quantize&&(e.type==EventType::Drum||e.type==EventType::NoteOn||e.type==EventType::NoteOff||e.type==EventType::Pluck)) step=std::round(step);
     const bool wraps=step>=length();
     step=std::fmod(step,length());

@@ -21,7 +21,8 @@ struct Input {
     bool ready=true;
     std::array<bool, ButtonCount> held{};
 };
-enum class EventType { Pluck, RetuneStrings, NoteOn, NoteOff, Expression, Silence, Drum, Loop, LayerStop };
+// Event identities are persisted in performance files.
+enum class EventType { Pluck=0, NoteOn=2, NoteOff=3, Expression=4, Silence=5, Drum=6, Loop=7, LayerStop=8 };
 struct Event {
     EventType type=EventType::Silence;
     int id=0;
@@ -60,7 +61,7 @@ private:
     std::array<StringStrike,stringCount> stringStrikes_{};
     Input previous_{};
     bool armed_=true, menu_=false, quit_=false, expressionSounding_=false, chordStickActive_=false, hasMode_=false;
-    int chord_=0, wheel_=-1, stroke_=0, menuRow_=0, temporaryOctave_=0, temporarySemitone_=0, guitarTranspose_=0;
+    int chord_=0, wheel_=-1, stroke_=0, menuRow_=0, temporaryOctave_=0, temporarySemitone_=0, expressionTranspose_=0;
     Mode observedMode_=Mode::Guitar;
     float strength_=0,previewPitch_=60;
     double lastTime_=0;

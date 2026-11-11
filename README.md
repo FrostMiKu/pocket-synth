@@ -41,7 +41,7 @@ Hold D-pad right first to display the available shortcuts:
 | L2 / R2 | Previous / next sound |
 | D-pad up / down | Increase / decrease the fixed octave |
 
-For pitched instruments, hold **D-pad up/down** for a temporary octave change or **D-pad left** to raise notes by one semitone. Keys switches directly to the new pitch; Expressive supports continuous pitch transitions.
+For pitched instruments, hold **D-pad up/down** for a temporary octave change or **D-pad left** to raise notes by one semitone. Each new note captures the current octave and semitone. Held notes and release tails keep that pitch when the modifier changes. Expressive keeps its starting register until you release L1 or center the stick; moving the right stick still changes the melody.
 
 Loop supports one or two bars, overdubbing, undo, quantization and four independent tracks. Pitched tracks support four layers each. Bar and beat indicators follow playback, and tails continue into the next loop. Reopened performances start paused; wait for preparation to finish, then press right + A to play.
 

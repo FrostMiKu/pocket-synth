@@ -77,13 +77,6 @@ Events Controller::update(const Input& i, Settings& s, double now) {
         if(selecting) chord_=stableSector(i.lx,i.ly,chordStickActive_?chord_:-1);
         chordStickActive_=selecting;
         if(performance.held[R2]&&!previous_.held[R2]) { out=reset(); readPitchModifiers(i); }
-        const int transpose=playing.root+12*(playing.octave-middleOctave);
-        if(transpose!=guitarTranspose_) {
-            Event e; e.type=EventType::RetuneStrings; e.bend=float(transpose-guitarTranspose_);
-            out.add(e);
-            for(auto& strike:stringStrikes_) if(strike.startsAt>=0) strike.note+=int(e.bend);
-            guitarTranspose_=transpose;
-        }
         if(std::abs(i.ry)<stickNeutral) armed_=true;
         if(performance.held[R2]) armed_=false;
         const bool crossed=std::abs(i.ry)>.58f;
@@ -117,18 +110,21 @@ Events Controller::update(const Input& i, Settings& s, double now) {
             if(selected) previewPitch_=s.continuousPitch?continuousWheelNote(i.rx,i.ry,playing):float(scaleNote(wheel_,playing));
             bool gate=selected&&(!s.holdGate||performance.held[expressionGateButton]);
             if(gate) {
+                const int transpose=playing.root+12*playing.octave;
+                if(!expressionSounding_) expressionTranspose_=transpose;
                 Event e; e.type=EventType::NoteOn; e.id=0;
-                e.note=previewPitch_; e.velocity=std::clamp(radius,.15f,1.f);
+                e.note=previewPitch_+float(expressionTranspose_-transpose); e.velocity=std::clamp(radius,.15f,1.f);
                 out.add(e); expressionSounding_=true;
             } else if(expressionSounding_) { out.add({EventType::NoteOff,0}); expressionSounding_=false; }
         } else {
             for(size_t n=0;n<instrumentButtons.size();++n) {
-                if(performance.held[instrumentButton(n,s)]) {
+                const bool held=performance.held[instrumentButton(n,s)];
+                if(held&&!notes_[n]) {
                     Event e; e.type=EventType::NoteOn; e.id=int(n);
                     e.note=float(scaleNote(int(n),playing));
                     out.add(e);
-                } else if(notes_[n]) out.add({EventType::NoteOff,int(n)});
-                notes_[n]=performance.held[instrumentButton(n,s)];
+                } else if(!held&&notes_[n]) out.add({EventType::NoteOff,int(n)});
+                notes_[n]=held;
             }
         }
         Event e; e.type=EventType::Expression;

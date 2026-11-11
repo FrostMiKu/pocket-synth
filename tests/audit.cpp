@@ -144,18 +144,6 @@ static void levels() {
         check(20*std::log10(high/low)<6,"equal-strength guitar notes have balanced output across registers");
     }
 }
-static void retuneLevel() {
-    for(int note:{45,69,81}) {
-        Engine baseline; Event p; p.type=EventType::Pluck; p.note=float(note);
-        baseline.apply(p); power(baseline,12000);
-        Engine shifted=baseline;
-        Event transpose; transpose.type=EventType::RetuneStrings; transpose.bend=12; shifted.apply(transpose);
-        power(baseline,6000); power(shifted,6000);
-        const float reference=power(baseline,6000),changed=power(shifted,6000);
-        check(reference>1.e-9f&&changed>1.e-9f&&std::abs(10*std::log10(changed/reference))<3,
-              "retuning a ringing string preserves its level within musical variation");
-    }
-}
 static void randomPerformance() {
     std::mt19937 rng(46791); Settings s; Controller c; Engine e;
     for(int tick=0;tick<1200;++tick) {
@@ -186,22 +174,19 @@ static void semitoneControls() {
             check(s.root==11&&s.octave==4&&playing.root==12,"held semitone preserves saved root across the octave boundary");
             check(playing.scale==s.scale,"held semitone preserves the selected scale");
             if(mode==Mode::Guitar) {
-                check(raised.count==1&&raised.data[0].type==EventType::RetuneStrings&&raised.data[0].bend==1,"left raises ringing guitar strings by a semitone without a new stroke");
-                check(c.stringStrikes()[0].note==guitarNote(chordBanks[0][0],0,playing),"guitar feedback follows the semitone modifier");
-                check(chordLabel(chordBanks[0][0],s,1)=="C","guitar chord preview follows the semitone across B to C");
-                check(c.update(i,s,.03).count==0,"holding left keeps a stable guitar pitch");
-            } else {
-                const int count=mode==Mode::Keys?8:1;
-                for(int n=0;n<count;++n)
-                    check(raised.data[n].note==scaleNote(n,playing),"held melody notes adopt the semitone modifier");
-                if(mode==Mode::Expressive) check(c.previewPitch()==raised.data[0].note,"voice preview matches the raised sounding note");
-            }
+                check(raised.count==0,"semitone preview preserves ringing strings");
+                check(c.stringStrikes()[0].note==guitarNote(chordBanks[0][0],0,s),"string feedback keeps the performed pitch");
+                check(chordLabel(chordBanks[0][0],s,1)=="C","chord preview follows the semitone across B to C");
+            } else if(mode==Mode::Expressive) {
+                check(raised.data[0].note==scaleNote(0,s),"held voice retains its starting semitone");
+                check(c.previewPitch()==scaleNote(0,playing),"voice preview presents the next attack pitch");
+            } else check(raised.count==1,"held keys sustain through semitone preview");
             i.held[Up]=true; c.update(i,s,.04);
             playing=c.performanceSettings(s);
             check(scaleNote(0,playing)==84,"octave and semitone modifiers combine");
             i.held[Left]=false; auto released=c.update(i,s,.05);
             check(c.performanceSettings(s).root==11,"releasing left restores the saved root");
-            if(mode==Mode::Guitar) check(released.data[0].bend==-1,"releasing left restores ringing guitar strings");
+            if(mode==Mode::Guitar) check(released.count==0,"releasing left preserves ringing strings");
             i.held[Right]=true; c.update(i,s,.06);
             check(s.root==11&&s.octave==5&&c.performanceSettings(s).root==11,"right plus up fixes the octave while preserving the root");
             c.reset(); check(c.performanceSettings(s).root==s.root,"reset clears the temporary semitone");
@@ -216,7 +201,7 @@ static void semitoneControls() {
     Controller c; Input i; i.rx=.3f; i.ry=-.9f;
     float base=c.update(i,voice,.01).data[0].note;
     i.held[Left]=true;
-    check(std::abs(c.update(i,voice,.02).data[0].note-base-1)<.001f,"continuous Theremin pitch supports the same semitone modifier");
+    check(std::abs(c.update(i,voice,.02).data[0].note-base)<.001f,"continuous Theremin retains the starting semitone during a phrase");
 }
 static void faceButtonLayout() {
     constexpr std::array<Button,8> buttons={A,B,X,Y,L1,L2,R1,R2};
@@ -264,10 +249,11 @@ static void metaOctaveControls() {
         i.held[Right]=true; c.update(i,s,.02);
         check(s.octave==4&&c.performanceSettings(s).octave==4,"Meta alone preserves the octave");
         i.held[direction]=true; auto shifted=c.update(i,s,.03);
-        const int octave=direction==Up?5:3,delta=direction==Up?12:-12;
+        const int octave=direction==Up?5:3;
         check(s.octave==octave&&c.performanceSettings(s).octave==octave,"Meta plus direction changes only the fixed octave");
-        if(mode==Mode::Guitar) check(shifted.count==1&&shifted.data[0].type==EventType::RetuneStrings&&shifted.data[0].bend==delta,"Meta retunes ringing guitar strings exactly one octave");
-        else check(shifted.data[0].note==60+delta,"Meta retunes a held melody exactly one octave");
+        if(mode==Mode::Guitar) check(shifted.count==0,"fixed octave selection preserves ringing strings");
+        else if(mode==Mode::Expressive) check(shifted.data[0].note==60,"fixed octave selection preserves the current voice phrase");
+        else check(shifted.count==1,"fixed octave selection preserves held keys");
         c.update(i,s,.04);
         check(s.octave==octave,"holding a Meta shortcut changes the octave once");
         i.held[Right]=false; c.update(i,s,.05);
@@ -302,7 +288,7 @@ static void metaOctaveControls() {
     check(s.octave==5&&s.quantize==Quantize::All,"settings keep their navigation and value controls");
 }
 int main() {
-    metaOctaveControls(); faceButtonLayout(); semitoneControls(); muteAndExit(); modeChanges(); wheelStability(); damagedSettings(); settingsFailures(); inputRecovery(); releaseTone(); globalStop(); levels(); dynamicsAndMelodyLevels(); retuneLevel(); randomPerformance();
+    metaOctaveControls(); faceButtonLayout(); semitoneControls(); muteAndExit(); modeChanges(); wheelStability(); damagedSettings(); settingsFailures(); inputRecovery(); releaseTone(); globalStop(); levels(); dynamicsAndMelodyLevels(); randomPerformance();
     std::printf("Audit: %d checks, %d failures\n",checks,failures);
     return failures?1:0;
 }

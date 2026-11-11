@@ -44,7 +44,7 @@ bool Looper::load(const std::string& path) {
             case EventType::Drum: if(mode!=int(Mode::Drums)||e.id>=drumCount) return false; break;
             case EventType::NoteOn: case EventType::NoteOff: case EventType::Expression:
                 if(mode!=int(Mode::Expressive)&&mode!=int(Mode::Keys)) return false; break;
-            case EventType::RetuneStrings: case EventType::LayerStop:
+            case EventType::LayerStop:
                 if(mode!=int(Mode::Guitar)||e.id>=guitarVoiceCount||e.id%stringCount!=0) return false; break;
             case EventType::Silence: break;
             default: return false;

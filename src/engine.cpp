@@ -48,11 +48,6 @@ Event Engine::apply(Event e) {
         nextDue_=UINT64_MAX;
         for(auto& s:strings_) { s.gate=false; if(s.envelope.IsRunning()) s.envelope.Release(); }
         for(auto& m:melody_) m.noteOff(true);
-    } else if(e.type==EventType::RetuneStrings) {
-        const int first=(e.id/stringCount)*stringCount;
-        if(first<0||first>=guitarVoiceCount) return e;
-        for(int n=first;n<first+stringCount;++n) { auto& s=strings_[n]; s.note+=e.bend; s.voice.SetFreq(frequency(s.note)); }
-        for(auto& p:pending_) if(p.active&&p.event.id>=first&&p.event.id<first+stringCount) p.event.note+=e.bend;
     } else if(e.type==EventType::Pluck&&e.id>=0&&e.id<guitarVoiceCount) {
         if(e.delay==0) pluck(e);
         else for(auto& p:pending_) if(!p.active) { active_=true; p={e,clock_+e.delay,true}; nextDue_=std::min(nextDue_,p.due); break; }

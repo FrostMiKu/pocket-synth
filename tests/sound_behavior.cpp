@@ -96,34 +96,6 @@ void soundIdentity() {
         check(difference>power*.08,"different catalog sounds produce clearly distinct waveforms");
     }
 }
-void steppedKeys() {
-    const auto catalog=soundCatalog();
-    for(auto p=catalog.begin;p!=catalog.end;++p) if(p->mode==Mode::Keys) for(Button modifier:{Up,Down,Left}) {
-        auto studio=std::make_unique<Studio>(); Settings s; s.mode=Mode::Keys; s.sounds[int(s.mode)]=p->id;
-        Controller controller; Input input; input.held[A]=true; studio->configure(s);
-        auto submit=[&](double time) { auto events=controller.update(input,s,time); studio->configure(s); for(size_t i=0;i<events.count;++i) studio->apply(events.data[i]); };
-        std::vector<float> audio(24000); submit(0); studio->render(audio.data(),12000);
-        input.held[modifier]=true; submit(.25);
-        const float expected=frequency(float(scaleNote(0,controller.performanceSettings(s))));
-        audio.resize(4096); studio->render(audio.data(),2048);
-        // A stepped note is periodic at the target frequency from the change.
-        // Compare waveform periods during the first 20 ms, before a glide could settle.
-        auto periodicity=[&](float hz) {
-            const double lag=double(sampleRate)/hz; double xy=0,xx=0,yy=0;
-            for(int i=0;i<960-int(std::ceil(lag))-1;++i) {
-                const double position=i+lag; const size_t j=size_t(position); const double f=position-j;
-                const double x=audio[size_t(i)*2],y=audio[j*2]*(1-f)+audio[(j+1)*2]*f;
-                xy+=x*y; xx+=x*x; yy+=y*y;
-            }
-            return xy/std::sqrt(xx*yy);
-        };
-        const double correlation=periodicity(expected);
-        if(correlation<.995) std::fprintf(stderr,"key pitch %s modifier=%d correlation=%.5f\n",p->key,int(modifier),correlation);
-        check(correlation>.995,"a late octave or semitone modifier reaches the target keyboard pitch immediately");
-        input.held[modifier]=false; submit(.3); studio->render(audio.data(),2048);
-        check(periodicity(frequency(float(scaleNote(0,s))))>.995,"releasing a temporary modifier immediately restores the keyboard pitch");
-    }
-}
 void recordedSounds() {
     auto studio=std::make_unique<Studio>(); Settings s; s.mode=Mode::Keys; s.tempo=240; studio->configure(s);
     const auto piano=selectedSound(s,s.mode).id; studio->apply({EventType::Loop,int(LoopCommand::Record)});
@@ -153,6 +125,6 @@ void recordedSounds() {
 }
 }
 int main() {
-    catalogAndSelection(); shortcuts(); soundIdentity(); steppedKeys(); recordedSounds();
+    catalogAndSelection(); shortcuts(); soundIdentity(); recordedSounds();
     std::printf("Sound behavior: %d checks, %d failures\n",checks,failures); return failures?1:0;
 }

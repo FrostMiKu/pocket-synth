@@ -5,3 +5,4 @@ loop-tests
 cache-tests
 loop-experience-tests
 sound-tests
+pitch-tests
