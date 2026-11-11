@@ -8,6 +8,7 @@ public:
     MelodyVoice();
     void noteOn(float note,float velocity,const SoundPreset&,PitchTransition);
     void noteOff(bool fast=false);
+    void transpose(float delta) { note_+=delta; pitch_+=delta; }
     float process(float timbre,float bend,float vibrato);
     bool active() const { return envelope_.IsRunning(); }
     SoundId sound() const { return preset_?preset_->id:0; }

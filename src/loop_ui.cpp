@@ -17,12 +17,11 @@ void drawLoopStatus(SDL_Renderer* r,const Settings& s,const Settings& playing,co
     tempo+=" BPM";
     const std::string bars=loopPosition(loop);
     const std::string state=loopState(loop);
-    constexpr int padding=6;
     text(r,margin,infoY,fitText(pitch,loopTempoX-margin-loopInfoGap),1,muted);
     text(r,loopTempoX,infoY,tempo,1,muted);
     text(r,loopPositionX,infoY,bars,1,muted);
     fill(r,loopStatusX,infoY-4,loopStatusWidth,15,selected);
-    text(r,loopStatusX+padding,infoY,state,1,loop.playing&&!loop.recording&&!loop.countBeat&&!loop.full&&!loop.savedUnavailable?mint:gold);
+    centeredText(r,loopStatusX+loopStatusWidth/2,infoY+3,state,1,loop.playing&&!loop.recording&&!loop.countBeat&&!loop.full&&!loop.savedUnavailable?mint:gold);
     fill(r,margin,headerLineY,contentWidth,2,line);
     if(loop.playing) fill(r,margin,headerLineY,int(contentWidth*loop.progress),2,loop.recording?gold:mint);
     if(!tracks) return;

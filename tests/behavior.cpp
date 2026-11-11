@@ -60,18 +60,18 @@ static void guitarOctaves() {
     const auto original=c.update(i,s,.01);
     const auto strike=c.stringStrikes()[0];
     i.held[Up]=true;
-    expect(c.update(i,s,.02).count==0,"octave preview preserves the ringing chord");
+    expect(c.update(i,s,.12).count==0,"octave preview preserves the ringing chord");
     expect(s.octave==4&&c.performanceSettings(s).octave==5,"temporary octave preserves the saved register");
     expect(c.stringStrikes()[0].note==strike.note&&c.stringStrikes()[0].startsAt==strike.startsAt,
            "string feedback retains the performed pitch and attack time");
-    i.ry=0; c.update(i,s,.03); i.ry=.9f;
-    auto raised=c.update(i,s,.04);
+    i.ry=0; c.update(i,s,.13); i.ry=.9f;
+    auto raised=c.update(i,s,.14);
     for(int n=0;n<stringCount;++n) expect(raised.data[n].note==original.data[n].note+12,"a fresh strum uses the selected octave");
     i.held[Up]=false;
-    expect(c.update(i,s,.05).count==0,"modifier release preserves the raised chord");
+    expect(c.update(i,s,.15).count==0,"modifier release preserves the raised chord");
     expect(c.stringStrikes()[0].note==strike.note+12,"raised string feedback lasts with the chord");
-    i.ry=0; c.update(i,s,.06); i.ry=.9f;
-    expect(c.update(i,s,.07).data[0].note==original.data[0].note,"the next strum uses the saved octave");
+    i.ry=0; c.update(i,s,.16); i.ry=.9f;
+    expect(c.update(i,s,.17).data[0].note==original.data[0].note,"the next strum uses the saved octave");
 }
 static void guitarDecay() {
     for(int octave:{2,4,6}) {
@@ -182,22 +182,22 @@ static void ocarina() {
     }
     expect(rms(sound(engine,12000))>.01,"eight simultaneous notes remain audible and bounded");
     i.held[Up]=true;
-    expect(c.update(i,s,.02).count==1,"held keys keep their initial pitches during octave selection");
+    expect(c.update(i,s,.12).count==1,"held keys keep their initial pitches during octave selection");
     expect(c.performanceSettings(s).octave==5&&s.scale==Scale::Major,"octave preview preserves the selected scale");
-    i.held[A]=false; auto release=c.update(i,s,.03);
+    i.held[A]=false; auto release=c.update(i,s,.13);
     expect(release.count==2&&release.data[0].type==EventType::NoteOff,"one key releases while the remaining chord sustains");
     i.held[A]=true;
-    expect(c.update(i,s,.04).data[0].note==72,"a fresh key press uses the selected octave");
+    expect(c.update(i,s,.14).data[0].note==72,"a fresh key press uses the selected octave");
     i.held[Up]=false;
-    expect(c.update(i,s,.05).count==1,"modifier release sustains the chord at its performed pitches");
-    i.held[A]=false; c.update(i,s,.06);
-    i={}; auto rest=c.update(i,s,.07);
+    expect(c.update(i,s,.15).count==1,"modifier release sustains the chord at its performed pitches");
+    i.held[A]=false; c.update(i,s,.16);
+    i={}; auto rest=c.update(i,s,.17);
     expect(rest.count==8,"remaining seven notes release independently");
-    i.held[Select]=true; auto change=c.update(i,s,.08);
+    i.held[Select]=true; auto change=c.update(i,s,.18);
     expect(change.data[0].type==EventType::Silence&&s.mode==Mode::Drums,"mode change releases the previous instrument");
-    i={}; c.update(i,s,.09); i.held[Start]=true; auto menu=c.update(i,s,.1);
+    i={}; c.update(i,s,.19); i.held[Start]=true; auto menu=c.update(i,s,.2);
     expect(c.menu()&&menu.data[0].type==EventType::Silence,"settings opens with a clean release");
-    i.held[Select]=true; c.update(i,s,.11); expect(c.quit(),"exit chord exits from settings");
+    i.held[Select]=true; c.update(i,s,.21); expect(c.quit(),"exit chord exits from settings");
 }
 static void numberedNotation() {
     Settings s; s.noteDisplay=NoteDisplay::Numbered;

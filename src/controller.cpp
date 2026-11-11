@@ -6,18 +6,19 @@ Events Controller::reset() {
     clearSince_=-1; clearSent_=false;
     chordStickActive_=false;
     stringStrikes_.fill({}); stroke_=0; strength_=0;
-    notes_.fill(false); wheel_=-1; armed_=true; expressionSounding_=false; temporaryOctave_=0; temporarySemitone_=0;
+    notes_.fill(false); wheel_=-1; armed_=true; expressionSounding_=false; modifiers_=0; recentAttacks_.fill({});
     Events out; out.add({EventType::Silence}); return out;
 }
 Settings Controller::performanceSettings(const Settings& saved) const {
     Settings playing=saved;
-    playing.octave=std::clamp(saved.octave+temporaryOctave_,minOctave,maxOctave);
-    playing.root+=temporarySemitone_;
+    playing.octave=modifiedOctave(saved.octave,modifiers_);
+    playing.root+=int(bool(modifiers_&SemitoneUp));
     return playing;
 }
 void Controller::readPitchModifiers(const Input& i) {
-    temporaryOctave_=i.held[Right]?0:int(i.held[Up]&&!metaUpUsed_)-int(i.held[Down]&&!metaDownUsed_);
-    temporarySemitone_=int(i.held[Left]);
+    modifiers_=int(!i.held[Right]&&i.held[Up]&&!metaUpUsed_)*OctaveUp
+        |int(!i.held[Right]&&i.held[Down]&&!metaDownUsed_)*OctaveDown
+        |int(i.held[Left])*SemitoneUp;
 }
 void Controller::updatePitchControls(const Input& i,Settings& s) {
     if(!i.held[Up]) metaUpUsed_=false;
@@ -69,7 +70,9 @@ Events Controller::update(const Input& i, Settings& s, double now) {
         observedMode_=s.mode; previous_=i; return out;
     }
     const Input performance=loopControls(i,s,now,out);
+    const int priorModifiers=modifiers_;
     updatePitchControls(i,s);
+    completePitchGestures(i,performance,s,now,modifiers_&~priorModifiers,out);
     const Settings playing=performanceSettings(s);
     if(s.mode==Mode::Guitar) {
         playGuitar(i,performance,s,playing,now,dt,out);
@@ -93,6 +96,8 @@ Events Controller::update(const Input& i, Settings& s, double now) {
                 if(!expressionSounding_) expressionTranspose_=transpose;
                 Event e; e.type=EventType::NoteOn; e.id=0;
                 e.note=previewPitch_+float(expressionTranspose_-transpose); e.velocity=std::clamp(radius,.15f,1.f);
+                if(!expressionSounding_) startAttack(e,s,now);
+                else e.gesture=recentAttacks_[0].gesture;
                 out.add(e); expressionSounding_=true;
             } else if(expressionSounding_) { out.add({EventType::NoteOff,0}); expressionSounding_=false; }
         } else {
@@ -101,7 +106,7 @@ Events Controller::update(const Input& i, Settings& s, double now) {
                 if(held&&!notes_[n]) {
                     Event e; e.type=EventType::NoteOn; e.id=int(n);
                     e.note=float(scaleNote(int(n),playing));
-                    out.add(e);
+                    startAttack(e,s,now,instrumentButton(n,s)); out.add(e);
                 } else if(!held&&notes_[n]) out.add({EventType::NoteOff,int(n)});
                 notes_[n]=held;
             }

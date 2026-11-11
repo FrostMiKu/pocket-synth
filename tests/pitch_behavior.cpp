@@ -59,6 +59,7 @@ void retainedPitch() {
                     actual.render(4096); reference.engine=actual.engine;
                 }
                 sameAudio(actual,reference,"matching attacks produce matching audio",48);
+                actual.seconds=reference.seconds=.1;
                 actual.input.held[modifier]=!shiftedAttack; actual.update();
                 sameAudio(actual,reference,"pressing or releasing a modifier preserves held audio");
                 actual.gate(false); reference.gate(false);
@@ -75,7 +76,7 @@ void newAttacks() {
             if(mode==Mode::Guitar) input.ry=on?.9f:0;
             else if(mode==Mode::Expressive) { input.ry=-1; input.held[L1]=on; }
             else input.held[A]=on;
-            time+=.01; return c.update(input,s,time);
+            time+=.1; return c.update(input,s,time);
         };
         input.held[modifier]=true;
         auto shifted=gate(true);
@@ -92,11 +93,11 @@ void newAttacks() {
 void independentKeys() {
     Settings s; s.mode=Mode::Keys; Controller c; Input input; input.held[A]=true;
     c.update(input,s,0); input.held[Up]=true; input.held[B]=true;
-    auto second=c.update(input,s,.01);
+    auto second=c.update(input,s,.1);
     check(second.data[0].type==EventType::NoteOn&&second.data[0].id==1&&second.data[0].note==74,
           "a new upper-octave note joins the sustained lower-octave note");
     input.held[Up]=false; input.held[X]=true;
-    auto third=c.update(input,s,.02);
+    auto third=c.update(input,s,.2);
     check(third.data[0].id==2&&third.data[0].note==64,"each note in a chord captures its own starting register");
 }
 void expressivePhrase() {

@@ -1,5 +1,6 @@
 #pragma once
 #include "music.hpp"
+#include "pitch_gesture.hpp"
 #include <array>
 #include <cstdint>
 #include <cstddef>
@@ -22,13 +23,14 @@ struct Input {
     std::array<bool, ButtonCount> held{};
 };
 // Event identities are persisted in performance files.
-enum class EventType { Pluck=0, NoteOn=2, NoteOff=3, Expression=4, Silence=5, Drum=6, Loop=7, LayerStop=8 };
+enum class EventType { Pluck=0, NoteOn=2, NoteOff=3, Expression=4, Silence=5, Drum=6, Loop=7, LayerStop=8, AttackPitch=9 };
 struct Event {
     EventType type=EventType::Silence;
     int id=0;
     float note=60, velocity=1, timbre=.5f, vibrato=0, bend=0;
     uint32_t delay=0;
     SoundId sound=0;
+    uint64_t gesture=0;
 };
 struct Events {
     std::array<Event, 64> data{};
@@ -61,7 +63,7 @@ private:
     std::array<StringStrike,stringCount> stringStrikes_{};
     Input previous_{};
     bool armed_=true, menu_=false, quit_=false, expressionSounding_=false, chordStickActive_=false, hasMode_=false;
-    int chord_=0, wheel_=-1, stroke_=0, menuRow_=0, temporaryOctave_=0, temporarySemitone_=0, expressionTranspose_=0;
+    int chord_=0, wheel_=-1, stroke_=0, menuRow_=0, modifiers_=0, expressionTranspose_=0;
     Mode observedMode_=Mode::Guitar;
     float strength_=0,previewPitch_=60;
     double lastTime_=0;
@@ -75,5 +77,15 @@ private:
     bool metaUpUsed_=false, metaDownUsed_=false;
     void updatePitchControls(const Input&, Settings&);
     void readPitchModifiers(const Input&);
+    struct RecentAttack {
+        double started=-1;
+        int octave=middleOctave,modifiers=0;
+        Button key=ButtonCount;
+        uint64_t gesture=0;
+    };
+    std::array<RecentAttack,melodyNotesPerLayer> recentAttacks_{};
+    uint64_t nextGesture_=0;
+    void startAttack(Event&,const Settings&,double,Button=ButtonCount);
+    void completePitchGestures(const Input&,const Input&,const Settings&,double,int,Events&);
 };
 }

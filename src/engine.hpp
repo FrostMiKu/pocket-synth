@@ -23,10 +23,12 @@ private:
         StringLevel level;
         float gain=0, note=60;
         bool gate=false;
+        uint64_t gesture=0;
     };
     struct Pending { Event event; uint64_t due=0; bool active=false; };
     std::array<String, guitarVoiceCount> strings_{};
     std::array<MelodyVoice, melodyVoiceCount> melody_{};
+    std::array<uint64_t,melodyVoiceCount> melodyGestures_{};
     struct Expression { float timbre=.5f,vibrato=0,bend=0; };
     std::array<Expression,melodyLayerCount> expression_{};
     std::array<Pending, 96> pending_{};

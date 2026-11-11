@@ -100,6 +100,29 @@ void Looper::command(LoopCommand command,Mode mode) {
     }
 }
 void Looper::record(Mode mode,const Event& e) {
+    if(e.type==EventType::AttackPitch) {
+        if(e.gesture==0||mode==Mode::Drums) return;
+        const int voices=mode==Mode::Guitar?stringCount:melodyNotesPerLayer;
+        auto correct=[&](Recorded* records,size_t count) {
+            bool changed=false;
+            for(size_t n=0;n<count;++n) {
+                auto& note=records[n].event;
+                if(note.gesture==e.gesture&&note.id%voices==e.id&&(note.type==EventType::Pluck||note.type==EventType::NoteOn)) {
+                    note.note+=e.bend; changed=true;
+                }
+            }
+            return changed;
+        };
+        if(recording_&&int(mode)==recordTrack_) correct(take_.data(),takeCount_);
+        auto& track=tracks_[int(mode)];
+        if(correct(track.events.data(),track.count)) {
+            // Fresh order identities invalidate an older append-only cache prefix.
+            for(size_t n=0;n<track.count;++n) track.events[n].order=order_++;
+            track.revision=nextRevision_++;
+        }
+        if(e.id>=0&&e.id<int(lastNotes_.size())&&lastNotes_[e.id].gesture==e.gesture) lastNotes_[e.id].note+=e.bend;
+        return;
+    }
     if(!recording_||int(mode)!=recordTrack_||e.type==EventType::Loop) return;
     const bool melodic=mode==Mode::Expressive||mode==Mode::Keys;
     if(mode==Mode::Drums&&e.type==EventType::Silence) return;

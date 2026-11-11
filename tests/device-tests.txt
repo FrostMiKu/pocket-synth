@@ -7,3 +7,4 @@ loop-experience-tests
 sound-tests
 pitch-tests
 guitar-tests
+gesture-tests

@@ -12,11 +12,11 @@ void Controller::playGuitar(const Input& raw,const Input& performance,Settings& 
     if(pressed(guitarMuteButton)) { out=reset(); readPitchModifiers(raw); }
     if(performance.held[guitarMuteButton]) { armed_=false; return; }
     const auto& chord=chordBanks[saved.chordBank][chord_];
-    auto pluck=[&](int string,float velocity,uint32_t delay) {
+    auto pluck=[&](int string,float velocity,uint32_t delay,Button key=ButtonCount) {
         Event e; e.type=EventType::Pluck; e.id=string;
         e.note=float(guitarNote(chord,string,playing));
         e.velocity=velocity; e.timbre=.2f+.7f*velocity; e.delay=delay;
-        out.add(e);
+        startAttack(e,saved,now,key); out.add(e);
         stringStrikes_[string]={int(e.note),velocity,now+double(delay)/sampleRate};
     };
     std::array<bool,stringCount> picked{};
@@ -24,7 +24,7 @@ void Controller::playGuitar(const Input& raw,const Input& performance,Settings& 
         picked[string]=pressed(guitarStringButton(size_t(string),saved));
         if(picked[string]) {
             stroke_=0; strength_=.7f;
-            pluck(string,strength_,0);
+            pluck(string,strength_,0,guitarStringButton(size_t(string),saved));
         }
     }
     if(std::abs(raw.ry)<stickNeutral) armed_=true;

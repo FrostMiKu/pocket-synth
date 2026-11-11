@@ -169,7 +169,7 @@ static void semitoneControls() {
             else if(mode==Mode::Expressive) { i.ry=-1; i.held[L1]=true; }
             else for(Button key:instrumentButtons) i.held[key]=true;
             c.update(i,s,.01);
-            i.held[Left]=true; auto raised=c.update(i,s,.02);
+            i.held[Left]=true; auto raised=c.update(i,s,.12);
             Settings playing=c.performanceSettings(s);
             check(s.root==11&&s.octave==4&&playing.root==12,"held semitone preserves saved root across the octave boundary");
             check(playing.scale==s.scale,"held semitone preserves the selected scale");
@@ -181,13 +181,13 @@ static void semitoneControls() {
                 check(raised.data[0].note==scaleNote(0,s),"held voice retains its starting semitone");
                 check(c.previewPitch()==scaleNote(0,playing),"voice preview presents the next attack pitch");
             } else check(raised.count==1,"held keys sustain through semitone preview");
-            i.held[Up]=true; c.update(i,s,.04);
+            i.held[Up]=true; c.update(i,s,.14);
             playing=c.performanceSettings(s);
             check(scaleNote(0,playing)==84,"octave and semitone modifiers combine");
-            i.held[Left]=false; auto released=c.update(i,s,.05);
+            i.held[Left]=false; auto released=c.update(i,s,.15);
             check(c.performanceSettings(s).root==11,"releasing left restores the saved root");
             if(mode==Mode::Guitar) check(released.count==0,"releasing left preserves ringing strings");
-            i.held[Right]=true; c.update(i,s,.06);
+            i.held[Right]=true; c.update(i,s,.16);
             check(s.root==11&&s.octave==5&&c.performanceSettings(s).root==11,"right plus up fixes the octave while preserving the root");
             c.reset(); check(c.performanceSettings(s).root==s.root,"reset clears the temporary semitone");
         }
@@ -201,7 +201,7 @@ static void semitoneControls() {
     Controller c; Input i; i.rx=.3f; i.ry=-.9f;
     float base=c.update(i,voice,.01).data[0].note;
     i.held[Left]=true;
-    check(std::abs(c.update(i,voice,.02).data[0].note-base)<.001f,"continuous Theremin retains the starting semitone during a phrase");
+    check(std::abs(c.update(i,voice,.12).data[0].note-base)<.001f,"continuous Theremin retains the starting semitone during a phrase");
 }
 static void faceButtonLayout() {
     constexpr std::array<Button,8> buttons={A,B,X,Y,L1,L2,R1,R2};

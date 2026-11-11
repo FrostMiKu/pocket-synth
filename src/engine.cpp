@@ -19,7 +19,7 @@ Engine::Engine() {
 void Engine::pluck(const Event& e) {
     active_=true;
     auto& s=strings_[e.id];
-    s.note=e.note; s.voice.SetFreq(frequency(s.note)); s.voice.SetAccent(e.velocity);
+    s.gesture=e.gesture; s.note=e.note; s.voice.SetFreq(frequency(s.note)); s.voice.SetAccent(e.velocity);
     const auto& preset=resolveSound(e.sound,Mode::Guitar);
     s.voice.SetStructure(preset.structure);
     s.voice.SetBrightness(std::clamp(e.timbre+preset.brightness-.5f,0.f,1.f)); s.voice.SetDamping(preset.damping);
@@ -30,6 +30,15 @@ void Engine::pluck(const Event& e) {
     s.envelope.Retrigger(false);
 }
 Event Engine::apply(Event e) {
+    if(e.type==EventType::AttackPitch) {
+        if(mode_==Mode::Guitar&&e.id>=0&&e.id<guitarVoiceCount) {
+            auto& string=strings_[e.id];
+            if(string.gesture==e.gesture) { string.note+=e.bend; string.voice.SetFreq(frequency(string.note)); }
+            for(auto& pending:pending_) if(pending.active&&pending.event.id==e.id&&pending.event.gesture==e.gesture)
+                pending.event.note+=e.bend;
+        } else if(e.id>=0&&e.id<melodyVoiceCount&&melodyGestures_[e.id]==e.gesture) melody_[e.id].transpose(e.bend);
+        return e;
+    }
     if(e.type==EventType::Drum) { const auto& preset=resolveSound(e.sound,Mode::Drums); drums_.hit(e.id,e.velocity,std::clamp(e.timbre+preset.brightness-.5f,0.f,1.f)); active_=true; return e; }
     if(e.type==EventType::LayerStop) {
         const int first=(e.id/stringCount)*stringCount;
@@ -56,7 +65,7 @@ Event Engine::apply(Event e) {
     } else if(e.id>=0&&e.id<int(melody_.size())) {
         auto& m=melody_[e.id];
         if(e.type==EventType::NoteOn) {
-            active_=true;
+            active_=true; melodyGestures_[e.id]=e.gesture;
             m.noteOn(e.note,e.velocity,resolveSound(e.sound,mode_),
                 mode_==Mode::Keys?PitchTransition::Stepped:PitchTransition::Legato); e.sound=m.sound();
         } else if(e.type==EventType::NoteOff) m.noteOff();
