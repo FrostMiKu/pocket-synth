@@ -1,0 +1,6 @@
+{
+  "name": "Pocket Synth",
+  "identifier": "PocketSynth",
+  "slug": "pocketsynth",
+  "binary": "pocket-synth"
+}
