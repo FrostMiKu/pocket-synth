@@ -1,4 +1,5 @@
 #include "guitar_ui.hpp"
+#include "guitar_controls.hpp"
 #include "font.hpp"
 #include "notation.hpp"
 #include <algorithm>
@@ -29,7 +30,7 @@ float drawGuitarStrings(SDL_Renderer* r,const Settings& s,const Controller& c) {
                 SDL_RenderDrawLine(r,left+int((right-left)*a),y+wave(a)+pixel,
                                      left+int((right-left)*b),y+wave(b)+pixel);
         }
-        text(r,ui::stringNumberX,y-3,std::to_string(stringCount-n),1,ui::muted);
+        text(r,ui::stringButtonX,y-3,buttonNames[guitarStringButton(size_t(n),s)],1,level>.015f?ui::mint:ui::muted);
         const int pitch=level>.015f?strike.note:guitarNote(chord,n,playing);
         drawNote(r,ui::stringPitchX,y+1,pitch,s,2,level>.015f?ui::mint:ui::muted);
         if(level>.03f) {

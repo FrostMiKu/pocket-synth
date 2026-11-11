@@ -27,7 +27,7 @@ std::string loopState(const LoopView& loop) {
     if(loop.countBeat) return "COUNT "+std::to_string(loop.countBeat)+"/"+std::to_string(loopBeatsPerBar);
     if(loop.recording) return loop.overdubbing?"OVERDUBBING":"RECORDING";
     if(loop.armed) return "NEXT LOOP";
-    if(loop.preparing) return "PREPARING";
+    if(loop.starting) return "PREPARING";
     return loop.playing?"PLAYING":"PAUSED";
 }
 std::string loopNotice(const LoopView& loop) {

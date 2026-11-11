@@ -6,3 +6,4 @@ cache-tests
 loop-experience-tests
 sound-tests
 pitch-tests
+guitar-tests

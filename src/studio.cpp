@@ -81,7 +81,7 @@ void Studio::serviceCaches(bool boundary) {
     if(pendingPlay_&&ready) { pendingPlay_=false; looper_.command(LoopCommand::Play,mode_); }
 }
 LoopView Studio::view() const {
-    auto view=looper_.view(); view.preparing=preparing_||pendingPlay_; view.requestedTempo=desired_.tempo; view.requestedBars=desired_.loopBars; return view;
+    auto view=looper_.view(); view.preparing=preparing_||pendingPlay_; view.starting=pendingPlay_; view.requestedTempo=desired_.tempo; view.requestedBars=desired_.loopBars; return view;
 }
 void Studio::prepareCaches() {
     if(!configured_) configure(desired_);

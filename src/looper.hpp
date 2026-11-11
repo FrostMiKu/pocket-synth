@@ -7,7 +7,7 @@ namespace ps {
 enum class LoopNotice { None, Recorded, Undone, Cleared, Cancelled, EmptyTake };
 struct LoopView {
     int tempo=120,bars=1,step=0,countBeat=0,recordTrack=-1;
-    bool overdubbing=false,playing=false,recording=false,armed=false,full=false,savedUnavailable=false,preparing=false;
+    bool overdubbing=false,playing=false,recording=false,armed=false,full=false,savedUnavailable=false,preparing=false,starting=false;
     int requestedTempo=120,requestedBars=1;
     float progress=0;
     LoopNotice notice=LoopNotice::None;

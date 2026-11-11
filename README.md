@@ -14,7 +14,7 @@ Pocket Synth runs as a native PortMaster app on the R36S and as a desktop app on
 
 | Mode | Sounds | How to play |
 | --- | --- | --- |
-| **Guitar** | Acoustic guitar | Choose a chord with the left stick; strum up or down with the right stick. L1/R1 switches chord banks; R2 mutes the strings. |
+| **Guitar** | Acoustic guitar | Choose a chord with the left stick; strum up or down with the right stick. Pick the six strings from low to high with A, B, X, Y, L1 and R1. L2 switches chord banks; R2 mutes the strings. |
 | **Expressive** | Flute, violin | Choose a note with the right stick and hold L1 to play. Use the left stick for tone and vibrato. Choose a scale wheel or continuous pitch in settings. |
 | **Keys** | Piano, electric piano | Play eight scale notes with A, B, X, Y, L1, L2, R1 and R2. Hold several buttons for chords; use the left stick for pitch bend and vibrato. |
 | **Drum Machine** | Eight electronic drum pads | Play kick, snare, hats, clap, toms and crash. Move the left stick vertically for dynamics and horizontally for brightness. |

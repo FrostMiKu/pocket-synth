@@ -72,28 +72,7 @@ Events Controller::update(const Input& i, Settings& s, double now) {
     updatePitchControls(i,s);
     const Settings playing=performanceSettings(s);
     if(s.mode==Mode::Guitar) {
-        if((performance.held[L1]&&!previous_.held[L1])||(performance.held[R1]&&!previous_.held[R1])) s.chordBank=1-s.chordBank;
-        const bool selecting=std::hypot(i.lx,i.ly)>(chordStickActive_?.30f:.42f);
-        if(selecting) chord_=stableSector(i.lx,i.ly,chordStickActive_?chord_:-1);
-        chordStickActive_=selecting;
-        if(performance.held[R2]&&!previous_.held[R2]) { out=reset(); readPitchModifiers(i); }
-        if(std::abs(i.ry)<stickNeutral) armed_=true;
-        if(performance.held[R2]) armed_=false;
-        const bool crossed=std::abs(i.ry)>.58f;
-        if(armed_&&crossed&&!performance.held[R2]) {
-            armed_=false; stroke_=i.ry>0?1:-1;
-            strength_=std::clamp(std::abs(i.ry-previous_.ry)/dt/18.f,.15f,1.f);
-            const auto& chord=chordBanks[s.chordBank][chord_];
-            const float interval=.018f-.014f*strength_;
-            for(int n=0;n<stringCount;++n) {
-                int string=stroke_>0?n:stringCount-1-n;
-                Event e; e.type=EventType::Pluck; e.id=string;
-                e.note=float(guitarNote(chord,string,playing));
-                e.velocity=strength_; e.timbre=.2f+.7f*strength_;
-                e.delay=uint32_t(n*interval*sampleRate); out.add(e);
-                stringStrikes_[string]={int(e.note),e.velocity,now+double(e.delay)/sampleRate};
-            }
-        }
+        playGuitar(i,performance,s,playing,now,dt,out);
     } else if(s.mode==Mode::Drums) {
         for(size_t n=0;n<instrumentButtons.size();++n) {
             const Button button=instrumentButton(n,s);

@@ -73,6 +73,16 @@ void playbackPosition() {
         check(loopPosition(loop->view())=="BAR -/"+std::to_string(bars)+"  BEAT -/4","count-in is distinct from the upcoming playback position");
     }
 }
+void tempoStatus() {
+    LoopView view; view.preparing=true; view.requestedTempo=132;
+    check(loopState(view)=="PAUSED","a paused performance stays paused while a tempo change prepares");
+    view.playing=true;
+    check(loopState(view)=="PLAYING","a playing performance stays playing while a tempo change prepares");
+    view.playing=false; view.starting=true;
+    check(loopState(view)=="PREPARING","an explicitly requested playback start shows preparing until ready");
+    view.starting=view.preparing=false; view.playing=true; view.tempo=view.requestedTempo;
+    check(loopState(view)=="PLAYING","ready playback shows playing at the requested tempo");
+}
 void clearGesture() {
     for(bool swap:{false,true}) {
         Controller c; Settings s; s.mode=Mode::Drums; s.swapFaceButtons=swap; Input i;
@@ -90,6 +100,6 @@ void clearGesture() {
 }
 }
 int main() {
-    recordingJourney(); capacity(); playbackPosition(); clearGesture();
+    recordingJourney(); capacity(); playbackPosition(); tempoStatus(); clearGesture();
     std::printf("Loop experience: %d checks, %d failures\n",checks,failures); return failures?1:0;
 }

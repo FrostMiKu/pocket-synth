@@ -4,6 +4,7 @@
 #include "font.hpp"
 #include "notation.hpp"
 #include "guitar_ui.hpp"
+#include "guitar_controls.hpp"
 #include "loop_ui.hpp"
 #include "ui_controls.hpp"
 #include "ui_draw.hpp"
@@ -69,11 +70,11 @@ void draw(SDL_Renderer* r,const Settings& s,const Controller& c,const Input& in,
     else {
         noteWheel(r,s,playing,c);
         if(s.mode==Mode::Guitar) {
-            text(r,detailX,headingY,c.stroke()>0?"DOWNSTROKE":c.stroke()<0?"UPSTROKE":"STRUM TO PLAY",2,gold);
+            text(r,detailX,headingY,c.stroke()>0?"DOWNSTROKE":c.stroke()<0?"UPSTROKE":"PICK / STRUM",2,gold);
             activityBar(r,drawGuitarStrings(r,s,c));
             stickHint(r,margin,controlsY,false,"CHORD");
             stickHint(r,190,controlsY,true,"STRUM");
-            text(r,detailX,controlsY+3,"L1/R1 CHORD BANK   R2 MUTE",1,muted);
+            text(r,detailX,controlsY+3,std::string(buttonNames[guitarBankButton])+" CHORD BANK   "+buttonNames[guitarMuteButton]+" MUTE",1,muted);
             pitchHints(r,margin,playHintY);
         } else {
             text(r,detailX,headingY,s.continuousPitch?"CONTINUOUS PITCH":"SCALE WHEEL",2,gold);

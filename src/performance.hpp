@@ -71,6 +71,7 @@ private:
     bool clearSent_=false;
     Input loopControls(const Input&,Settings&,double,Events&);
     void edit(Settings&, int direction);
+    void playGuitar(const Input&,const Input&,Settings&,const Settings&,double,float,Events&);
     bool metaUpUsed_=false, metaDownUsed_=false;
     void updatePitchControls(const Input&, Settings&);
     void readPitchModifiers(const Input&);
