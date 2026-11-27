@@ -11,7 +11,9 @@ Input Controller::loopControls(const Input& raw,Settings& s,double now,Events& o
     auto command=[&](LoopCommand command) { Event e; e.type=EventType::Loop; e.id=int(command); out.add(e); };
     auto edge=[&](Button button) { return raw.held[button]&&!previous_.held[button]; };
     for(int b=0;b<ButtonCount;++b) if(!raw.held[b]) metaUsed_[b]=false;
-    if(raw.held[Right]) {
+    // Right is a silent downbeat: it starts a waiting take without adding a note.
+    if(edge(Right)&&!raw.held[metaButton]) command(LoopCommand::Cue);
+    if(raw.held[metaButton]) {
         for(Button button:{A,B,X,Y,L1,R1,L2,R2}) if(edge(button)) metaUsed_[button]=true;
         if(edge(L2)) cycleSound(s,s.mode,-1);
         if(edge(R2)) cycleSound(s,s.mode,1);
@@ -25,7 +27,7 @@ Input Controller::loopControls(const Input& raw,Settings& s,double now,Events& o
             tempoRepeat_=now+(first?.4:.08);
         }
     } else tempoRepeat_=now+.4;
-    const bool clearing=raw.held[Right]&&raw.held[mappedButton(Y,s)]&&metaUsed_[mappedButton(Y,s)];
+    const bool clearing=raw.held[metaButton]&&raw.held[mappedButton(Y,s)]&&metaUsed_[mappedButton(Y,s)];
     if(!clearing) { clearSince_=-1; clearSent_=false; }
     else {
         if(clearSince_<0) clearSince_=now;

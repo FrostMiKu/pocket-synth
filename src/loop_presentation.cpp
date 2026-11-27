@@ -2,7 +2,7 @@
 namespace ps {
 LoopActions loopActions(const LoopView& loop,Mode mode) {
     const int track=int(mode);
-    const bool waiting=loop.armed||loop.countBeat>0;
+    const bool waiting=loop.armed;
     const bool active=waiting||loop.recording;
     LoopActions actions;
     actions.play=loop.playing?"PAUSE":"PLAY";
@@ -17,20 +17,16 @@ LoopActions loopActions(const LoopView& loop,Mode mode) {
 std::string loopPosition(const LoopView& loop) {
     std::string bars=std::to_string(loop.bars);
     if(loop.requestedBars!=loop.bars) bars+=">"+std::to_string(loop.requestedBars);
-    const std::string bar=loop.countBeat?"-":std::to_string(loop.bar());
-    const std::string beat=loop.countBeat?"-":std::to_string(loop.beat());
-    return "BAR "+bar+"/"+bars+"  BEAT "+beat+"/"+std::to_string(loopBeatsPerBar);
+    return "BAR "+std::to_string(loop.bar())+"/"+bars+"  BEAT "+std::to_string(loop.beat())+"/"+std::to_string(loopBeatsPerBar);
 }
-int recordCountdownBeat(const LoopView& loop) {
-    if(loop.countBeat) return loop.countBeat;
-    return loop.armed&&loop.bar()==loop.bars?loop.beat():0;
+bool recordStarting(const LoopView& loop) {
+    return loop.recording&&loop.takeProgress*float(loop.bars*loopBeatsPerBar)<1;
 }
 std::string loopState(const LoopView& loop) {
     if(loop.savedUnavailable) return "CHECK LOOP";
     if(loop.full) return "TRACK FULL";
-    if(loop.countBeat) return "COUNT "+std::to_string(loop.countBeat)+"/"+std::to_string(loopBeatsPerBar);
     if(loop.recording) return loop.overdubbing?"OVERDUBBING":"RECORDING";
-    if(loop.armed) return "NEXT LOOP";
+    if(loop.armed) return "WAITING";
     if(loop.starting) return "PREPARING";
     return loop.playing?"PLAYING":"PAUSED";
 }

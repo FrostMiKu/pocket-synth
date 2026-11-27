@@ -103,7 +103,7 @@ void expressiveAndScheduled() {
 void boundaryGesture() {
     auto studio=std::make_unique<Studio>(); Settings s; s.mode=Mode::Keys; s.tempo=240; s.quantize=Quantize::Off;
     studio->configure(s); studio->apply({EventType::Loop,int(LoopCommand::Record)});
-    std::vector<float> audio(size_t(sampleRate)*2); studio->render(audio.data(),sampleRate);
+    std::vector<float> audio(size_t(sampleRate)*2); studio->apply({EventType::Loop,int(LoopCommand::Cue)});
     studio->render(audio.data(),sampleRate-240);
     Controller c; Input input=attack(s.mode);
     auto submit=[&](double time) {

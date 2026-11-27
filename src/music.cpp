@@ -21,10 +21,10 @@ int scaleNote(int degree, const Settings& s) {
     const int* steps = majorIntervals; int size = 7;
     if(s.scale == Scale::Minor) steps = minorIntervals;
     if(s.scale == Scale::Pentatonic) { steps = pentatonicIntervals; size = 5; }
-    return 12*(s.octave+1)+s.root+12*(degree/size)+steps[degree%size];
+    return 12*(s.octave+1)+s.root+s.capo+12*(degree/size)+steps[degree%size];
 }
 int guitarNote(const Chord& chord,int string,const Settings& s) {
-    return chord.notes[string]+s.root+12*(s.octave-middleOctave);
+    return chord.notes[string]+s.root+s.capo+12*(s.octave-middleOctave);
 }
 namespace {
 constexpr float tau=6.28318530718f;
@@ -74,7 +74,8 @@ std::string noteName(int midi) {
 }
 NoteLabel noteLabel(int midi,const Settings& s) {
     if(s.noteDisplay==NoteDisplay::Names) return {noteName(midi),0};
-    int relative=midi-(12*(middleOctave+1)+s.root);
+    // Numbered notation follows the sounding key, so a capo keeps every degree.
+    int relative=midi-(12*(middleOctave+1)+s.root+s.capo);
     int semitone=(relative%12+12)%12;
     int dots=(relative-semitone)/12;
     for(int n=0;n<7;++n)
@@ -87,8 +88,9 @@ NoteLabel noteLabel(int midi,const Settings& s) {
     return {"1",dots};
 }
 std::string chordLabel(const Chord& chord,const Settings& s,int semitoneOffset) {
+    // Chords name the shape being fingered; a capo changes only what sounds.
     if(s.noteDisplay==NoteDisplay::Names) return chordName(chord,s.root+semitoneOffset);
-    return noteLabel(chord.notes[0]+s.root+semitoneOffset,s).text+std::string(chord.name).substr(1);
+    return noteLabel(chord.notes[0]+s.root+s.capo+semitoneOffset,s).text+std::string(chord.name).substr(1);
 }
 
 }

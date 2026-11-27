@@ -72,10 +72,10 @@ void combinations() {
 }
 void shortcuts() {
     for(bool swap:{false,true}) for(Button key:{A,B,X,Y,L1,R1,L2,R2}) {
-        Settings s; s.swapFaceButtons=swap; Controller c; Input input; input.held[Right]=true;
+        Settings s; s.swapFaceButtons=swap; Controller c; Input input; input.held[metaButton]=true;
         c.update(input,s,0); input.held[key]=true; auto command=c.update(input,s,.01);
         check(!has(command,EventType::Pluck)&&s.chordBank==0,"Meta shortcuts keep strings and chord banks at rest");
-        input.held[Right]=false; auto released=c.update(input,s,.02);
+        input.held[metaButton]=false; auto released=c.update(input,s,.02);
         check(!has(released,EventType::Pluck)&&s.chordBank==0,"releasing Meta first keeps the command button consumed");
         input.held[key]=false; c.update(input,s,.03); input.held[key]=true;
         auto fresh=c.update(input,s,.04);

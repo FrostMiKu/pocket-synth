@@ -50,14 +50,14 @@ void catalogAndSelection() {
 }
 void shortcuts() {
     for(int mode=0;mode<modeCount;++mode) for(Button key:{L2,R2}) {
-        Controller c; Settings s; s.mode=Mode(mode); Input input; input.held[Right]=true; c.update(input,s,0);
+        Controller c; Settings s; s.mode=Mode(mode); Input input; input.held[metaButton]=true; c.update(input,s,0);
         auto expected=s; cycleSound(expected,s.mode,key==R2?1:-1);
         input.held[key]=true; auto events=c.update(input,s,.01);
         check(selectedSound(s,s.mode).id==selectedSound(expected,s.mode).id,"Meta triggers the requested sound direction");
         for(size_t n=0;n<events.count;++n) check(events.data[n].type!=EventType::Silence&&events.data[n].type!=EventType::Pluck&&events.data[n].type!=EventType::Drum&&events.data[n].type!=EventType::NoteOn,"sound navigation preserves guitar resonance and produces no stray notes");
         const auto selected=selectedSound(s,s.mode).id; c.update(input,s,2);
         check(selectedSound(s,s.mode).id==selected,"holding a sound shortcut selects once");
-        input.held[Right]=false; events=c.update(input,s,2.01);
+        input.held[metaButton]=false; events=c.update(input,s,2.01);
         for(size_t n=0;n<events.count;++n) check(events.data[n].type!=EventType::Silence&&events.data[n].type!=EventType::Drum&&events.data[n].type!=EventType::NoteOn,"releasing Meta first keeps the shoulder key consumed");
     }
 }

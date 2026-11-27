@@ -9,8 +9,11 @@ namespace ps {
 using namespace ui;
 void drawLoopStatus(SDL_Renderer* r,const Settings& s,const Settings& playing,const LoopView& loop,bool tracks) {
     const std::string sound=selectedSound(s,s.mode).name;
+    // Guitar convention: names give the fingered key with its capo ("C / CAPO 2");
+    // numbered notation gives the sounding tonic ("1=D / CAPO 2").
+    const int key=s.root+(s.noteDisplay==NoteDisplay::Numbered?s.capo:0);
     std::string pitch=s.mode==Mode::Drums?sound:
-        (s.noteDisplay==NoteDisplay::Numbered?"1=":"")+pitchClassName(60+s.root)+" / "+scaleNames[int(s.scale)]+" / OCTAVE "+std::to_string(playing.octave)+(playing.root!=s.root?" / +1":"");
+        (s.noteDisplay==NoteDisplay::Numbered?"1=":"")+pitchClassName(60+key)+" / "+scaleNames[int(s.scale)]+(s.capo?" / CAPO "+std::to_string(s.capo):"")+" / OCTAVE "+std::to_string(playing.octave)+(playing.root!=s.root?" / +1":"");
     if(s.mode!=Mode::Drums) pitch+=" / "+sound;
     std::string tempo=std::to_string(loop.tempo);
     if(loop.requestedTempo!=loop.tempo) tempo+=">"+std::to_string(loop.requestedTempo);
@@ -21,7 +24,7 @@ void drawLoopStatus(SDL_Renderer* r,const Settings& s,const Settings& playing,co
     text(r,loopTempoX,infoY,tempo,1,muted);
     text(r,loopPositionX,infoY,bars,1,muted);
     fill(r,loopStatusX,infoY-4,loopStatusWidth,15,selected);
-    centeredText(r,loopStatusX+loopStatusWidth/2,infoY+3,state,1,loop.playing&&!loop.recording&&!loop.countBeat&&!loop.full&&!loop.savedUnavailable?mint:gold);
+    centeredText(r,loopStatusX+loopStatusWidth/2,infoY+3,state,1,loop.playing&&!loop.recording&&!loop.armed&&!loop.full&&!loop.savedUnavailable?mint:gold);
     fill(r,margin,headerLineY,contentWidth,2,line);
     if(loop.playing) fill(r,margin,headerLineY,int(contentWidth*loop.progress),2,loop.recording?gold:mint);
     if(!tracks) return;
@@ -34,22 +37,18 @@ void drawLoopStatus(SDL_Renderer* r,const Settings& s,const Settings& playing,co
         text(r,x+8,101,detail,1,muted);
     }
 }
-void drawRecordingCue(SDL_Renderer* r,const LoopView& loop) {
-    const int beat=recordCountdownBeat(loop);
-    const bool start=loop.recording&&loop.bar()==1&&loop.beat()==1;
-    if(!beat&&!start) return;
+void drawRecordingCue(SDL_Renderer* r,const LoopView& loop,Mode mode) {
+    const bool waiting=loop.armed&&loop.recordTrack==int(mode);
+    const bool start=recordStarting(loop);
+    if(!waiting&&!start) return;
     fill(r,margin,392,contentWidth,48,background);
     if(start) {
         const auto color=loop.beatProgress<.25f?gold:mint;
         centeredText(r,width/2,412,"RECORDING",3,color);
         fill(r,margin,392,contentWidth,2,color);
     } else {
-        for(int n=1;n<=loopBeatsPerBar;++n) {
-            const int x=margin+(2*n-1)*contentWidth/(2*loopBeatsPerBar);
-            if(n==beat) fill(r,x-24,396,48,26,selected);
-            centeredText(r,x,409,std::to_string(n),3,n==beat?gold:n<beat?mint:muted);
-        }
-        centeredText(r,width/2,433,"RECORD ON NEXT 1",1,gold);
+        centeredText(r,width/2,409,"PLAY TO START",3,gold);
+        centeredText(r,width/2,433,"RIGHT STARTS WITH A REST",1,muted);
     }
 }
 void drawDrumPanel(SDL_Renderer* r,const Settings& s,const Controller& c,const Input& in,const LoopView& loop) {
@@ -62,7 +61,7 @@ void drawDrumPanel(SDL_Renderer* r,const Settings& s,const Controller& c,const I
         for(int pad=0;pad<drumCount;++pad) {
             const int y=top+pad*rowHeight;
             const bool set=loop.drumSteps[pad]&(1u<<(page*loopStepsPerBar+step));
-            const bool playhead=loop.playing&&!loop.countBeat&&loop.step%loopStepsPerBar==step;
+            const bool playhead=loop.playing&&loop.step%loopStepsPerBar==step;
             fill(r,gridX+step*cellWidth,y,cellWidth-3,rowHeight-4,set?mint:playhead?selected:card);
         }
     }

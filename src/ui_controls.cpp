@@ -36,7 +36,7 @@ void drawFooter(SDL_Renderer* r,const Settings& s,const Controller& c,const Inpu
     else if(c.menu()) {
         text(r,margin,footerTextY,"D-PAD SELECT / CHANGE",1,muted);
         text(r,240,footerTextY,"START RETURN TO PLAY",1,mint);
-    } else if(in.held[Right]) {
+    } else if(in.held[metaButton]) {
         const auto a=loopActions(loop,s.mode);
         const auto name=[&](Button b){return std::string(buttonNames[mappedButton(b,s)]);};
         constexpr int gap=8;
@@ -48,12 +48,13 @@ void drawFooter(SDL_Renderer* r,const Settings& s,const Controller& c,const Inpu
         x=action(r,x,footerTextY,"L1/R1","BPM")+gap;
         x=action(r,x,footerTextY,"L2/R2","SOUND",soundCount(s.mode)>1)+gap;
         dpad(r,x,footerTextY-4,Up,mint,true);
-        text(r,x+20,footerTextY,"OCTAVE",1,foreground);
+        text(r,x+20,footerTextY,"OCT",1,foreground); x+=20+textSize("OCT",1).x+gap;
+        dpad(r,x,footerTextY-4,Left,mint);
+        text(r,x+20,footerTextY,"CAPO",1,foreground);
     } else {
         int x=action(r,margin,footerTextY,"SELECT","MODE")+24;
         x=action(r,x,footerTextY,"START","SETTINGS")+24;
-        dpad(r,x,footerTextY-4,Right,mint);
-        text(r,x+20,footerTextY,"HOLD SHORTCUTS",1,mint);
+        text(r,x,footerTextY,std::string("HOLD ")+buttonNames[metaButton]+" SHORTCUTS",1,mint);
     }
     constexpr int meterX=500,meterWidth=right-meterX;
     fill(r,meterX,footerTextY,meterWidth,7,line);

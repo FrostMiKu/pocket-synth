@@ -5,18 +5,19 @@
 #include <cstdint>
 #include <cstddef>
 namespace ps {
-enum Button { A, B, X, Y, L1, R1, L2, R2, Up, Down, Left, Right, Start, Select, ButtonCount };
+enum Button { A, B, X, Y, L1, R1, L2, R2, Up, Down, Left, Right, Start, Select, Fn, ButtonCount };
 inline constexpr std::array<Button,8> instrumentButtons={A,B,X,Y,L1,L2,R1,R2};
 inline constexpr std::array<const char*,ButtonCount> buttonNames={
-    "A","B","X","Y","L1","R1","L2","R2","UP","DOWN","LEFT","RIGHT","START","SELECT"};
+    "A","B","X","Y","L1","R1","L2","R2","UP","DOWN","LEFT","RIGHT","START","SELECT","FN"};
 inline constexpr Button expressionGateButton=L1;
+inline constexpr Button metaButton=Fn;
 inline constexpr float stickNeutral=.22f;
 inline Button mappedButton(Button button,const Settings& s) {
     constexpr std::array<Button,4> swapped={B,A,Y,X};
     return s.swapFaceButtons&&button<=Y?swapped[size_t(button)]:button;
 }
 inline Button instrumentButton(size_t degree,const Settings& s) { return mappedButton(instrumentButtons[degree],s); }
-enum class LoopCommand { Play, Record, Undo, Clear, Stop };
+enum class LoopCommand { Play, Record, Undo, Clear, Stop, Cue };
 struct Input {
     float lx=0, ly=0, rx=0, ry=0;
     bool ready=true;
@@ -74,7 +75,7 @@ private:
     Input loopControls(const Input&,Settings&,double,Events&);
     void edit(Settings&, int direction);
     void playGuitar(const Input&,const Input&,Settings&,const Settings&,double,float,Events&);
-    bool metaUpUsed_=false, metaDownUsed_=false;
+    bool metaUpUsed_=false, metaDownUsed_=false, metaLeftUsed_=false;
     void updatePitchControls(const Input&, Settings&);
     void readPitchModifiers(const Input&);
     struct RecentAttack {

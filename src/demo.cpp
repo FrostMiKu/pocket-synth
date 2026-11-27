@@ -32,7 +32,7 @@ Input demoInput(double t,Settings& s,bool recordLoops) {
     }
     if(recordLoops&&t<16) {
         const double local=std::fmod(t,4.);
-        if(local>=.5&&local<.55) i.held[Right]=i.held[mappedButton(B,s)]=true;
+        if(local>=.5&&local<.55) i.held[metaButton]=i.held[mappedButton(B,s)]=true;
     }
     return i;
 }

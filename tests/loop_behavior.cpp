@@ -32,8 +32,8 @@ static void pitchAccuracyAndMute() {
     }
     check(largestCents<.001,"continuous pitch stays within one thousandth of a cent of equal temperament");
     auto studio=std::make_unique<Studio>(); Settings s; s.volume=0; studio->configure(s);
-    studio->apply({EventType::Loop,int(LoopCommand::Record)});
-    check(rms(render(*studio,4800))==0,"master volume also mutes the count-in");
+    studio->apply({EventType::Loop,int(LoopCommand::Record)}); studio->apply({EventType::Loop,int(LoopCommand::Cue)});
+    check(rms(render(*studio,4800))==0,"master volume also mutes the recording clicks");
 }
 static void shortGatePulses() {
     for(Mode mode:{Mode::Expressive,Mode::Keys}) for(EventType stop:{EventType::NoteOff,EventType::Silence}) {
@@ -77,7 +77,7 @@ static void drums() {
 }
 static void controls() {
     for(int mode=0;mode<modeCount;++mode) {
-        Settings s; s.mode=Mode(mode); Controller c; Input i; i.held[Right]=true;
+        Settings s; s.mode=Mode(mode); Controller c; Input i; i.held[metaButton]=true;
         c.update(i,s,0);
         i.held[B]=true; auto record=c.update(i,s,.01);
         bool found=false,played=false;
@@ -86,16 +86,16 @@ static void controls() {
             played|=record.data[n].type==EventType::Drum||record.data[n].type==EventType::Pluck||record.data[n].type==EventType::NoteOn;
         }
         check(found&&!played,"Meta record starts recording while consuming the performance button");
-        i.held[Right]=false; auto released=c.update(i,s,.02);
+        i.held[metaButton]=false; auto released=c.update(i,s,.02);
         check(!c.performing(B,i),"releasing Meta first keeps its command button consumed until release");
         for(size_t n=0;n<released.count;++n) check(released.data[n].type!=EventType::Drum&&released.data[n].type!=EventType::NoteOn,"Meta release creates no stray note");
-        i={}; c.update(i,s,.03); i.held[Right]=true; c.update(i,s,.04);
+        i={}; c.update(i,s,.03); i.held[metaButton]=true; c.update(i,s,.04);
         i.held[R1]=true; const int bank=s.chordBank; auto faster=c.update(i,s,.05);
         check(s.tempo==121&&s.chordBank==bank,"Meta R1 raises tempo once and preserves the chord bank");
         check(!c.performing(R1,i),"tempo controls consume the performance button");
         c.update(i,s,.2); check(s.tempo==121,"tempo repeat waits before repeating");
         c.update(i,s,.46); check(s.tempo==122,"holding tempo repeats after the initial delay");
-        i={}; c.update(i,s,.5); i.held[Right]=true; c.update(i,s,.51); i.held[Y]=true;
+        i={}; c.update(i,s,.5); i.held[metaButton]=true; c.update(i,s,.51); i.held[Y]=true;
         auto early=c.update(i,s,.52); bool cleared=false;
         for(size_t n=0;n<early.count;++n) cleared|=early.data[n].type==EventType::Loop&&early.data[n].id==int(LoopCommand::Clear);
         check(!cleared,"clearing waits for a deliberate hold");
@@ -104,7 +104,7 @@ static void controls() {
         check(cleared,"holding Meta Y clears the current track");
     }
     Settings s; s.mode=Mode::Expressive; Controller c; Input i; i.ry=-1; i.held[L1]=true; c.update(i,s,0);
-    i.held[Right]=true; c.update(i,s,.01);
+    i.held[metaButton]=true; c.update(i,s,.01);
     check(s.tempo==120,"holding a singing key before Meta preserves tempo");
     i.held[R1]=true; auto events=c.update(i,s,.02);
     check(s.tempo==121&&events.data[0].type==EventType::NoteOn,"tempo adjustment can preserve an already held voice gate");
@@ -114,19 +114,20 @@ static void transport() {
     loop->command(LoopCommand::Record,s.mode);
     int clicks=0; bool accent=false;
     for(int frame=0;frame<sampleRate;++frame) { if(loop->takeClick(accent)) ++clicks; loop->advance(); }
-    check(clicks==4&&loop->view().recording,"first recording follows four count-in beats");
+    check(clicks==0&&loop->view().armed&&!loop->view().recording,"first recording waits silently for the first input");
+    loop->command(LoopCommand::Cue,s.mode);
     advance(*loop,1800); Event hit; hit.type=EventType::Drum; hit.id=0; loop->record(s.mode,hit);
     advance(*loop,sampleRate-1800);
     check(!loop->view().recording&&loop->view().events[int(s.mode)]==1,"one recorded cycle commits automatically");
     check(loop->view().drumSteps[0]==2,"drums quantize to the nearest sixteenth note");
     std::vector<Event> played; advance(*loop,sampleRate,&played);
     check(played.size()==1&&played[0].type==EventType::Drum,"a recorded drum hit repeats once per cycle");
-    loop->command(LoopCommand::Record,s.mode); advance(*loop,sampleRate);
+    loop->command(LoopCommand::Record,s.mode); loop->command(LoopCommand::Cue,s.mode);
     hit.id=1; loop->record(s.mode,hit); advance(*loop,sampleRate);
     check(loop->view().events[int(s.mode)]==2,"a second take overdubs the existing track");
     loop->command(LoopCommand::Undo,s.mode);
     check(loop->view().events[int(s.mode)]==1,"undo removes the last overdub and retains the earlier take");
-    loop->command(LoopCommand::Record,Mode::Keys); advance(*loop,sampleRate);
+    loop->command(LoopCommand::Record,Mode::Keys);
     Event note; note.type=EventType::NoteOn; note.note=64; loop->record(Mode::Keys,note);
     advance(*loop,sampleRate/4); note.type=EventType::NoteOff; loop->record(Mode::Keys,note); advance(*loop,sampleRate*3/4);
     check(loop->view().events[int(Mode::Keys)]==2&&loop->view().events[int(Mode::Drums)]==1,"instruments retain independent synchronized tracks");
@@ -146,10 +147,10 @@ static void transport() {
     check(!loaded->load("loop-broken.pi")&&loaded->view().events==loop->view().events,"malformed project preserves the current tracks");
     std::remove("loop-test.pi"); std::remove("loop-broken.pi");
     s.loopBars=2; loop->configure(s); loop->command(LoopCommand::Stop,s.mode);
-    loop->command(LoopCommand::Record,s.mode); advance(*loop,sampleRate);
-    check(loop->view().recording&&loop->view().bars==2,"two-bar recording keeps a four-beat count-in");
+    loop->command(LoopCommand::Record,s.mode); loop->command(LoopCommand::Cue,s.mode);
+    check(loop->view().recording&&loop->view().bars==2,"two-bar recording starts at the rest cue");
     advance(*loop,sampleRate); check(loop->view().recording,"two-bar recording continues through the first bar");
-    advance(*loop,sampleRate); check(!loop->view().recording,"two-bar recording finishes at its shared boundary");
+    advance(*loop,sampleRate); check(!loop->view().recording,"two-bar recording finishes after both bars");
 }
 static void audioLoop() {
     auto studio=std::make_unique<Studio>(); Settings s; s.mode=Mode::Expressive; s.tempo=240; studio->configure(s);

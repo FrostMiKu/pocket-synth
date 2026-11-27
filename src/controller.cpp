@@ -16,20 +16,24 @@ Settings Controller::performanceSettings(const Settings& saved) const {
     return playing;
 }
 void Controller::readPitchModifiers(const Input& i) {
-    modifiers_=int(!i.held[Right]&&i.held[Up]&&!metaUpUsed_)*OctaveUp
-        |int(!i.held[Right]&&i.held[Down]&&!metaDownUsed_)*OctaveDown
-        |int(i.held[Left])*SemitoneUp;
+    modifiers_=int(!i.held[metaButton]&&i.held[Up]&&!metaUpUsed_)*OctaveUp
+        |int(!i.held[metaButton]&&i.held[Down]&&!metaDownUsed_)*OctaveDown
+        |int(!i.held[metaButton]&&i.held[Left]&&!metaLeftUsed_)*SemitoneUp;
 }
 void Controller::updatePitchControls(const Input& i,Settings& s) {
     if(!i.held[Up]) metaUpUsed_=false;
     if(!i.held[Down]) metaDownUsed_=false;
-    if(i.held[Right]) {
-        const bool upPressed=i.held[Up]&&(!previous_.held[Up]||!previous_.held[Right]);
-        const bool downPressed=i.held[Down]&&(!previous_.held[Down]||!previous_.held[Right]);
+    if(!i.held[Left]) metaLeftUsed_=false;
+    if(i.held[metaButton]) {
+        auto fresh=[&](Button b){ return i.held[b]&&(!previous_.held[b]||!previous_.held[metaButton]); };
         const int direction=int(i.held[Up])-int(i.held[Down]);
-        if(upPressed||downPressed) s.octave=std::clamp(s.octave+direction,minOctave,maxOctave);
+        if(fresh(Up)||fresh(Down)) s.octave=std::clamp(s.octave+direction,minOctave,maxOctave);
+        // Capo: Fn+Left moves it up a fret, Fn+Right down; a held Left becomes the capo.
+        if(fresh(Left)) s.capo=std::min(s.capo+1,maxCapo);
+        if(i.held[Right]&&!previous_.held[Right]) s.capo=std::max(s.capo-1,0);
         metaUpUsed_=metaUpUsed_||i.held[Up];
         metaDownUsed_=metaDownUsed_||i.held[Down];
+        metaLeftUsed_=metaLeftUsed_||i.held[Left];
     }
     readPitchModifiers(i);
 }
@@ -92,7 +96,7 @@ Events Controller::update(const Input& i, Settings& s, double now) {
             if(selected) previewPitch_=s.continuousPitch?continuousWheelNote(i.rx,i.ry,playing):float(scaleNote(wheel_,playing));
             bool gate=selected&&(!s.holdGate||performance.held[expressionGateButton]);
             if(gate) {
-                const int transpose=playing.root+12*playing.octave;
+                const int transpose=playing.root+playing.capo+12*playing.octave;
                 if(!expressionSounding_) expressionTranspose_=transpose;
                 Event e; e.type=EventType::NoteOn; e.id=0;
                 e.note=previewPitch_+float(expressionTranspose_-transpose); e.velocity=std::clamp(radius,.15f,1.f);

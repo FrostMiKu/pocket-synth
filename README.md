@@ -19,21 +19,21 @@ Pocket Synth runs as a native PortMaster app on the R36S and as a desktop app on
 | **Keys** | Piano, electric piano | Play eight scale notes with A, B, X, Y, L1, L2, R1 and R2. Hold several buttons for chords; use the left stick for pitch bend and vibrato. |
 | **Drum Machine** | Eight electronic drum pads | Play kick, snare, hats, clap, toms and crash. Move the left stick vertically for dynamics and horizontally for brightness. |
 
-Hold **D-pad right**, then press **L2/R2** to select the previous/next sound. Each mode remembers its selection. Held notes keep their original sound; new notes use the new selection. Recorded tracks keep the sounds you played.
+Hold **Fn**, then press **L2/R2** to select the previous/next sound. Each mode remembers its selection. Held notes keep their original sound; new notes use the new selection. Recorded tracks keep the sounds you played.
 
 ## Quick start
 
 1. **Select** changes instrument. **Start** opens settings.
-2. Play a few notes, then hold **D-pad right + B** to record. The first recording starts after a four-beat count-in.
+2. Hold **Fn + B** to get ready. Nothing plays until you do: your first note starts the loop on beat one and is recorded. To begin with a rest, press **D-pad right** instead; it starts the take silently, so you can come in later.
 3. Play for one loop. Recording finishes automatically at the end of the loop.
 4. Switch instrument and record another track, or record again to add a layer.
 5. **Select + Start** exits and saves your settings and Loop.
 
-Recording starts after a visible four-beat count-in with audible clicks and a distinct recording downbeat. Beat clicks continue during recording. Slightly early attacks are captured on the first beat, and cue clicks stay outside the recorded tracks.
+Recording waits for you instead of counting in. Beat clicks start with the take, with a distinct downbeat, and stay outside the recorded tracks. While the Loop is playing, Fn + B also waits: the take starts at your first note (or D-pad right) and records exactly one full loop from there, continuing across the loop start.
 
-Hold D-pad right first to display the available shortcuts:
+Hold Fn first to display the available shortcuts. On a desktop controller, Fn is the Guide/Home button; on a keyboard, it is Left Shift.
 
-| Right + | Action |
+| Fn + | Action |
 | --- | --- |
 | A | Play / pause all tracks |
 | B | Start recording, cancel a wait, or finish the current take |
@@ -42,10 +42,13 @@ Hold D-pad right first to display the available shortcuts:
 | L1 / R1 | Decrease / increase tempo |
 | L2 / R2 | Previous / next sound |
 | D-pad up / down | Increase / decrease the fixed octave |
+| D-pad left / right | Capo up / down one fret (0–11) |
+
+The capo works like a guitar capo on every pitched instrument: Fn + D-pad left moves it up a fret, Fn + D-pad right moves it down, and it stays until you move it again. Everything sounds higher by the capo's frets, but chord names keep the shape you finger (capo 2 shows C, sounds D), numbered notation keeps its degrees, and the key in settings stays the same. The status line shows `CAPO 2`; the guitar's string pitches show the actual sounding notes. Holding D-pad left still adds a temporary semitone on top.
 
 For pitched instruments, hold **D-pad up/down** for a temporary octave change or **D-pad left** to raise notes by one semitone. Each new note captures the current octave and semitone. A modifier pressed within 50 ms of the attack joins the same gesture, with an immediate pitch change. Held notes and release tails keep that pitch when the modifier changes. Expressive keeps its starting register until you release L1 or center the stick; moving the right stick still changes the melody.
 
-Loop supports one or two bars, overdubbing, undo, quantization and four independent tracks. Pitched tracks support four layers each. Bar and beat indicators follow playback, and tails continue into the next loop. Reopened performances start paused; wait for preparation to finish, then press right + A to play.
+Loop supports one or two bars, overdubbing, undo, quantization and four independent tracks. Pitched tracks support four layers each. Bar and beat indicators follow playback, and tails continue into the next loop. Reopened performances start paused; wait for preparation to finish, then press Fn + A to play.
 
 Settings include root, scale, octave, volume, note names or numbered notation, and an A/B–X/Y swap option for different controller layouts. The on-screen hints follow your chosen layout. See the [detailed playing guide (Chinese)](docs/快速上手.md) for the full controls.
 

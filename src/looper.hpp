@@ -6,10 +6,10 @@
 namespace ps {
 enum class LoopNotice { None, Recorded, Undone, Cleared, Cancelled, EmptyTake };
 struct LoopView {
-    int tempo=120,bars=1,step=0,countBeat=0,recordTrack=-1;
+    int tempo=120,bars=1,step=0,recordTrack=-1;
     bool overdubbing=false,playing=false,recording=false,armed=false,full=false,savedUnavailable=false,preparing=false,starting=false;
     int requestedTempo=120,requestedBars=1;
-    float progress=0,beatProgress=0;
+    float progress=0,beatProgress=0,takeProgress=0;
     LoopNotice notice=LoopNotice::None;
     int noticeTrack=-1;
     std::array<int,modeCount> layers{};
@@ -39,7 +39,7 @@ public:
     size_t eventCount(Mode mode) const { return tracks_[int(mode)].count; }
     size_t prefixCount(Mode,unsigned maxOrder) const;
     double phase() const { return position_/length(); }
-    bool running() const { return playing_&&countIn_<=0; }
+    bool running() const { return playing_; }
     bool busyRecording() const { return recording_||armed_; }
     bool save(const std::string&);
     bool load(const std::string&);
@@ -54,13 +54,15 @@ private:
     std::array<Track,modeCount> tracks_{};
     std::array<Recorded,loopEventLimit> take_{},merged_{};
     std::array<Event,8> lastNotes_{};
-    std::array<bool,8> noteHeld_{};
+    std::array<bool,8> noteHeld_{},liveHeld_{};
+    std::array<uint64_t,8> liveGesture_{};
     Event lastExpression_{};
-    Events pickup_{};
+    Event armedExpression_{};
+    bool hasArmedExpression_=false;
     size_t takeCount_=0;
     int recordTrack_=-1,takeLayer_=0,tempo_=120,bars_=1,dispatchTrack_=0,lastBeat_=-1;
     Quantize quantize_=Quantize::Drums;
-    double position_=0,countIn_=0;
+    double position_=0,takeElapsed_=0;
     bool playing_=false,armed_=false,recording_=false,full_=false,expressionSet_=false,resume_=false;
     unsigned stops_=0,order_=0;
     uint64_t nextRevision_=2;
@@ -72,7 +74,6 @@ private:
     void cancelTake();
     double length() const { return bars_*loopStepsPerBar; }
     double stepPerFrame() const { return double(tempo_)*loopStepsPerBeat/(60*sampleRate); }
-    bool capturePickup(Mode,const Event&);
     void beginTake();
     void finishTake();
     void rewind();

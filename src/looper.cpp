@@ -13,15 +13,19 @@ void Looper::configure(const Settings& s) {
 }
 void Looper::rewind() { for(auto& track:tracks_) track.cursor=0; dispatchTrack_=0; }
 void Looper::beginTake() {
-    takeCount_=0; recording_=true; armed_=false; full_=false;
+    // Stopped: the first input is the downbeat. Playing: the take starts in place.
+    if(!playing_) { playing_=true; position_=0; lastBeat_=-1; rewind(); }
+    // Quantized takes start on the grid, so their first attack repeats exactly one loop later.
+    const bool quantize=quantize_==Quantize::All||(quantize_==Quantize::Drums&&recordTrack_==int(Mode::Drums));
+    takeCount_=0; takeElapsed_=quantize?position_-std::round(position_):0; recording_=true; armed_=false; full_=false;
     noteHeld_.fill(false); expressionSet_=false;
     takeLayer_=0;
     if(recordTrack_!=int(Mode::Drums)) {
         takeLayer_=layers(Mode(recordTrack_));
-        if(takeLayer_>=loopLayerCount) { recording_=false; full_=true; }
+        if(takeLayer_>=loopLayerCount) { recording_=false; full_=true; return; }
     }
-    const Events ready=pickup_; pickup_.count=0;
-    for(size_t n=0;n<ready.count;++n) record(Mode(recordTrack_),ready.data[n]);
+    // The stick state held while waiting opens the take's expression.
+    if(hasArmedExpression_) { hasArmedExpression_=false; record(Mode(recordTrack_),armedExpression_); }
 }
 void Looper::finishTake() {
     if(!recording_||recordTrack_<0) return;
@@ -31,7 +35,8 @@ void Looper::finishTake() {
     });
     if(!hasNotes) { takeCount_=0; notify(LoopNotice::EmptyTake,recordTrack_); return; }
     if(recordTrack_==int(Mode::Expressive)||recordTrack_==int(Mode::Keys)) {
-        const double end=std::min(position_,length()-stepPerFrame());
+        // Notes held through the end of a full take sustain until its start point.
+        const double end=std::fmod(position_-stepPerFrame()+length(),length());
         for(int id=0;id<melodyNotesPerLayer;++id) if(noteHeld_[id]) {
             if(takeCount_>=loopEventLimit) { full_=true; takeCount_=0; return; }
             Event off{EventType::NoteOff,id+takeLayer_*melodyNotesPerLayer};
@@ -47,13 +52,14 @@ void Looper::finishTake() {
     track.revision=nextRevision_++;
     notify(LoopNotice::Recorded,recordTrack_);
     track.count+=takeCount_; std::copy_n(merged_.begin(),track.count,track.events.begin()); takeCount_=0;
-    // Already heard live: the new take joins playback on the next cycle.
-    track.cursor=size_t(std::upper_bound(track.events.begin(),track.events.begin()+track.count,position_,
-       [](double step,const Recorded& e){return step<e.step;})-track.events.begin());
+    // Already heard live. A full take next repeats from its own start, at most one frame behind;
+    // a take finished early resumes after the current position.
+    const double from=takeElapsed_+1.e-9>=length()?position_-stepPerFrame()-1.e-9:position_+1.e-9;
+    track.cursor=size_t(std::lower_bound(track.events.begin(),track.events.begin()+track.count,from,
+       [](const Recorded& e,double step){return e.step<step;})-track.events.begin());
 }
 void Looper::cancelTake() {
-    recording_=armed_=false; takeCount_=0; pickup_.count=0;
-    if(countIn_>0) { countIn_=0; playing_=false; stops_=(1u<<modeCount)-1; }
+    recording_=armed_=false; takeCount_=0; hasArmedExpression_=false;
 }
 void Looper::snapshot(Mode mode,LoopTrackSnapshot& out) const {
     const auto& track=tracks_[int(mode)];
@@ -68,16 +74,15 @@ size_t Looper::prefixCount(Mode mode,unsigned maxOrder) const {
 void Looper::command(LoopCommand command,Mode mode) {
     const int selected=int(mode);
     if(command==LoopCommand::Play) {
-        if(playing_) { finishTake(); armed_=false; countIn_=0; playing_=false; stops_=(1u<<modeCount)-1; }
+        if(playing_) { finishTake(); armed_=false; playing_=false; stops_=(1u<<modeCount)-1; }
         else { playing_=true; resume_=true; }
     } else if(command==LoopCommand::Record) {
         if(recording_||armed_) { const bool waiting=armed_; finishTake(); cancelTake(); if(waiting) notify(LoopNotice::Cancelled,recordTrack_); }
         else {
             recordTrack_=selected; full_=false;
             if(!canRecord(mode)) { full_=true; return; }
-            armed_=true; notice_=LoopNotice::None; pickup_.count=0;
+            armed_=true; notice_=LoopNotice::None; hasArmedExpression_=false;
             lastBeat_=playing_&&std::fmod(position_+1.e-9,loopStepsPerBeat)>1.e-8?int(position_/loopStepsPerBeat):-1;
-            if(!playing_) { playing_=true; position_=0; countIn_=loopStepsPerBar; lastBeat_=-1; rewind(); }
         }
     } else if(command==LoopCommand::Undo) {
         full_=false;
@@ -99,7 +104,9 @@ void Looper::command(LoopCommand command,Mode mode) {
         track.count=track.cursor=0; track.revision=nextRevision_++; stops_|=1u<<selected;
         notify(LoopNotice::Cleared,selected);
     } else if(command==LoopCommand::Stop) {
-        finishTake(); armed_=false; playing_=false; countIn_=0; stops_=(1u<<modeCount)-1;
+        finishTake(); armed_=false; playing_=false; stops_=(1u<<modeCount)-1;
+    } else if(command==LoopCommand::Cue) {
+        if(armed_) beginTake();
     }
 }
 void Looper::record(Mode mode,const Event& e) {
@@ -115,7 +122,6 @@ void Looper::record(Mode mode,const Event& e) {
             for(size_t n=0;n<count;++n) changed=correctEvent(records[n].event)||changed;
             return changed;
         };
-        for(size_t n=0;n<pickup_.count;++n) correctEvent(pickup_.data[n]);
         if(recording_&&int(mode)==recordTrack_) correct(take_.data(),takeCount_);
         auto& track=tracks_[int(mode)];
         if(correct(track.events.data(),track.count)) {
@@ -126,7 +132,18 @@ void Looper::record(Mode mode,const Event& e) {
         if(e.id>=0&&e.id<int(lastNotes_.size())&&lastNotes_[e.id].gesture==e.gesture) lastNotes_[e.id].note+=e.bend;
         return;
     }
-    if(capturePickup(mode,e)) return;
+    bool fresh=e.type==EventType::Pluck||e.type==EventType::Drum;
+    if(e.type==EventType::NoteOn&&e.id>=0&&e.id<8) {
+        // A held expressive gate repeats NoteOn with its gesture; only new attacks start a take.
+        fresh=!liveHeld_[e.id]||liveGesture_[e.id]!=e.gesture;
+        liveHeld_[e.id]=true; liveGesture_[e.id]=e.gesture;
+    } else if(e.type==EventType::NoteOff&&e.id>=0&&e.id<8) liveHeld_[e.id]=false;
+    else if(e.type==EventType::Silence) liveHeld_.fill(false);
+    if(armed_&&int(mode)==recordTrack_) {
+        if(e.type==EventType::Expression) { armedExpression_=e; hasArmedExpression_=true; return; }
+        if(!fresh) return;
+        beginTake();
+    }
     if(!recording_||int(mode)!=recordTrack_||e.type==EventType::Loop) return;
     const bool melodic=mode==Mode::Expressive||mode==Mode::Keys;
     if(mode==Mode::Drums&&e.type==EventType::Silence) return;
@@ -159,7 +176,7 @@ void Looper::record(Mode mode,const Event& e) {
     take_[takeCount_++]={step,event,order_++,wraps};
 }
 bool Looper::next(Mode& mode,Event& event,unsigned* order) {
-    if(!playing_||countIn_>0) return false;
+    if(!playing_) return false;
     while(dispatchTrack_<modeCount) {
         auto& track=tracks_[dispatchTrack_];
         if(track.cursor<track.count&&track.events[track.cursor].step<=position_+1.e-9) {
@@ -171,16 +188,11 @@ bool Looper::next(Mode& mode,Event& event,unsigned* order) {
 }
 size_t Looper::framesToNext(size_t maximum) const {
     if(!playing_) return maximum;
-    double distance;
-    if(countIn_>0) {
-        const double elapsed=loopStepsPerBar-countIn_;
-        distance=std::min(countIn_,(std::floor((elapsed+1.e-9)/loopStepsPerBeat)+1)*loopStepsPerBeat-elapsed);
-    } else {
-        distance=length()-position_;
-        if(recording_||armed_) distance=std::min(distance,(std::floor((position_+1.e-9)/loopStepsPerBeat)+1)*loopStepsPerBeat-position_);
-        for(const auto& track:tracks_) if(track.cursor<track.count&&track.events[track.cursor].step<length())
-            distance=std::min(distance,track.events[track.cursor].step-position_);
-    }
+    double distance=length()-position_;
+    if(recording_||armed_) distance=std::min(distance,(std::floor((position_+1.e-9)/loopStepsPerBeat)+1)*loopStepsPerBeat-position_);
+    if(recording_) distance=std::min(distance,length()-takeElapsed_);
+    for(const auto& track:tracks_) if(track.cursor<track.count&&track.events[track.cursor].step<length())
+        distance=std::min(distance,track.events[track.cursor].step-position_);
     const double frames=std::ceil((distance-1.e-9)/stepPerFrame());
     return size_t(std::clamp(frames,1.,double(maximum)));
 }
@@ -188,25 +200,23 @@ void Looper::advance() {
     if(noticeFrames_>0&&--noticeFrames_==0) notice_=LoopNotice::None;
     dispatchTrack_=0;
     if(!playing_) return;
-    if(countIn_>0) {
-        countIn_-=stepPerFrame();
-        if(countIn_<=1.e-9) { countIn_=0; position_=0; rewind(); if(armed_) beginTake(); lastBeat_=-1; }
-        return;
-    }
     position_+=stepPerFrame();
+    if(recording_) {
+        takeElapsed_+=stepPerFrame();
+        if(takeElapsed_+1.e-9>=length()) finishTake();
+    }
     if(position_+1.e-9>=length()) {
-        finishTake(); position_=std::max(0.,position_-length());
+        position_=std::max(0.,position_-length());
         // A wrap changes score position; ringing instruments continue naturally.
         rewind();
-        if(armed_) beginTake();
     }
 }
 unsigned Looper::takeStops() { const unsigned stops=stops_; stops_=0; return stops; }
 bool Looper::takeClick(bool& accent) {
-    if(!playing_||(!recording_&&!armed_&&countIn_<=0)) return false;
-    const int beat=int(((countIn_>0?loopStepsPerBar-countIn_:position_)+1.e-9)/loopStepsPerBeat);
+    if(!playing_||(!recording_&&!armed_)) return false;
+    const int beat=int((position_+1.e-9)/loopStepsPerBeat);
     if(beat==lastBeat_) return false;
-    lastBeat_=beat; accent=countIn_<=0&&beat%loopBeatsPerBar==0; return true;
+    lastBeat_=beat; accent=beat%loopBeatsPerBar==0; return true;
 }
 std::array<Events,modeCount> Looper::takeResume() {
     std::array<Events,modeCount> result{};

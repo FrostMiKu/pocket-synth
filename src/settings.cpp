@@ -34,6 +34,7 @@ Settings loadSettings(const std::string& path) {
         if(key=="root") s.root=std::clamp(v,0,11);
         if(key=="octave") s.octave=std::clamp(v,minOctave,maxOctave);
         if(key=="chordBank") s.chordBank=std::clamp(v,0,1);
+        if(key=="capo") s.capo=std::clamp(v,0,maxCapo);
         if(key=="volume") s.volume=std::clamp(value,0.f,1.f);
         if(key=="continuousPitch") s.continuousPitch=v!=0;
         if(key=="holdGate") s.holdGate=v!=0;
@@ -42,8 +43,8 @@ Settings loadSettings(const std::string& path) {
 }
 bool saveSettings(const std::string& path, const Settings& s) {
     return atomicWrite(path,[&](FILE* out) {
-        if(std::fprintf(out,"mode %d\nscale %d\nroot %d\noctave %d\nchordBank %d\nvolume %.7g\nnoteDisplay %d\ncontinuousPitch %d\nholdGate %d\nswapFaceButtons %d\ntempo %d\nloopBars %d\nquantize %d\n",
-        int(s.mode),int(s.scale),s.root,s.octave,s.chordBank,double(s.volume),int(s.noteDisplay),int(s.continuousPitch),int(s.holdGate),int(s.swapFaceButtons),s.tempo,s.loopBars,int(s.quantize))<0) return false;
+        if(std::fprintf(out,"mode %d\nscale %d\nroot %d\noctave %d\ncapo %d\nchordBank %d\nvolume %.7g\nnoteDisplay %d\ncontinuousPitch %d\nholdGate %d\nswapFaceButtons %d\ntempo %d\nloopBars %d\nquantize %d\n",
+        int(s.mode),int(s.scale),s.root,s.octave,s.capo,s.chordBank,double(s.volume),int(s.noteDisplay),int(s.continuousPitch),int(s.holdGate),int(s.swapFaceButtons),s.tempo,s.loopBars,int(s.quantize))<0) return false;
         for(int mode=0;mode<modeCount;++mode)
             if(std::fprintf(out,"sound.%d %s\n",mode,selectedSound(s,Mode(mode)).key)<0) return false;
         return true;

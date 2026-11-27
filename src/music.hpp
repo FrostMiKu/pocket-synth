@@ -20,12 +20,13 @@ constexpr int scaleCount=int(Scale::Count);
 enum class NoteDisplay { Names, Numbered };
 enum class SettingRow { Root, Scale, Octave, Volume, ExpressionPitch, ExpressionGate, NoteDisplay, FaceButtons, Tempo, LoopBars, Quantize, Count };
 constexpr int settingCount=int(SettingRow::Count);
-constexpr int middleOctave=4,minOctave=2,maxOctave=6;
+constexpr int middleOctave=4,minOctave=2,maxOctave=6,maxCapo=11;
 struct Settings {
     Mode mode = Mode::Guitar;
     Scale scale = Scale::Major;
     NoteDisplay noteDisplay = NoteDisplay::Names;
-    int root = 0, octave = middleOctave, chordBank = 0;
+    // Capo transposes what sounds without changing chord shapes, degrees or the key.
+    int root = 0, octave = middleOctave, chordBank = 0, capo = 0;
     int tempo=120, loopBars=1;
     Quantize quantize=Quantize::Drums;
     float volume = .65f;

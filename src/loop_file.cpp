@@ -55,7 +55,7 @@ bool Looper::load(const std::string& path) {
     in>>std::ws; if(!in.eof()) return false;
     tracks_=std::move(loaded->tracks_); order_=loaded->order_;
     for(auto& track:tracks_) track.revision=nextRevision_++;
-    playing_=armed_=recording_=false; position_=countIn_=0; takeCount_=0;
+    playing_=armed_=recording_=false; position_=takeElapsed_=0; takeCount_=0; hasArmedExpression_=false;
     recordTrack_=-1; rewind(); stops_=(1u<<modeCount)-1;
     return true;
 }

@@ -187,8 +187,8 @@ static void semitoneControls() {
             i.held[Left]=false; auto released=c.update(i,s,.15);
             check(c.performanceSettings(s).root==11,"releasing left restores the saved root");
             if(mode==Mode::Guitar) check(released.count==0,"releasing left preserves ringing strings");
-            i.held[Right]=true; c.update(i,s,.16);
-            check(s.root==11&&s.octave==5&&c.performanceSettings(s).root==11,"right plus up fixes the octave while preserving the root");
+            i.held[metaButton]=true; c.update(i,s,.16);
+            check(s.root==11&&s.octave==5&&c.performanceSettings(s).root==11,"Meta plus up fixes the octave while preserving the root");
             c.reset(); check(c.performanceSettings(s).root==s.root,"reset clears the temporary semitone");
         }
     }
@@ -246,7 +246,7 @@ static void metaOctaveControls() {
         else if(mode==Mode::Expressive) { i.ry=-1; i.held[L1]=true; }
         else i.held[A]=true;
         c.update(i,s,.01);
-        i.held[Right]=true; c.update(i,s,.02);
+        i.held[metaButton]=true; c.update(i,s,.02);
         check(s.octave==4&&c.performanceSettings(s).octave==4,"Meta alone preserves the octave");
         i.held[direction]=true; auto shifted=c.update(i,s,.03);
         const int octave=direction==Up?5:3;
@@ -256,12 +256,12 @@ static void metaOctaveControls() {
         else check(shifted.count==1,"fixed octave selection preserves held keys");
         c.update(i,s,.04);
         check(s.octave==octave,"holding a Meta shortcut changes the octave once");
-        i.held[Right]=false; c.update(i,s,.05);
+        i.held[metaButton]=false; c.update(i,s,.05);
         check(c.performanceSettings(s).octave==octave,"releasing Meta first preserves the fixed octave until direction release");
         i.held[direction]=false; c.update(i,s,.06);
         i.held[direction]=true; c.update(i,s,.07);
         check(s.octave==octave&&c.performanceSettings(s).octave==octave+(direction==Up?1:-1),"a fresh direction press restores temporary octave control");
-        i.held[Right]=true; c.update(i,s,.08);
+        i.held[metaButton]=true; c.update(i,s,.08);
         check(s.octave==octave+(direction==Up?1:-1)&&c.performanceSettings(s).octave==s.octave,"pressing Meta after a direction converts it into a fixed octave");
         i.held[direction]=false; c.update(i,s,.09);
         check(c.performanceSettings(s).octave==s.octave,"releasing the direction first preserves the fixed octave");
@@ -271,24 +271,65 @@ static void metaOctaveControls() {
     }
     for(int octave:{minOctave,maxOctave}) {
         Settings s; s.octave=octave; Controller c; Input i;
-        i.held[Right]=true; i.held[octave==minOctave?Down:Up]=true; c.update(i,s,.01);
-        i.held[Right]=false; c.update(i,s,.02);
+        i.held[metaButton]=true; i.held[octave==minOctave?Down:Up]=true; c.update(i,s,.01);
+        i.held[metaButton]=false; c.update(i,s,.02);
         check(s.octave==octave&&c.performanceSettings(s).octave==octave,"Meta respects register bounds and stable release");
     }
-    Settings s; Controller c; Input i; i.held[Right]=i.held[Up]=i.held[Down]=true;
+    Settings s; Controller c; Input i; i.held[metaButton]=i.held[Up]=i.held[Down]=true;
     c.update(i,s,.01); check(s.octave==4,"opposite Meta directions preserve the fixed octave");
     i.held[Down]=false; c.update(i,s,.02);
     check(s.octave==4,"releasing one opposite direction waits for a fresh shortcut");
-    i={}; c.update(i,s,.03); i.held[Right]=i.held[Up]=i.held[Left]=true; c.update(i,s,.04);
-    check(s.octave==5&&c.performanceSettings(s).root==s.root+1,"Meta octave and the semitone modifier combine");
+    i={}; c.update(i,s,.03); i.held[metaButton]=i.held[Up]=i.held[Left]=true; c.update(i,s,.04);
+    check(s.octave==5&&s.capo==1&&c.performanceSettings(s).root==s.root,"Fn with Up and Left fixes the octave and the capo together");
     check(saveSettings("meta-settings.cfg",s)&&loadSettings("meta-settings.cfg").octave==5,"the fixed octave survives reopening");
     std::remove("meta-settings.cfg");
     i={}; i.held[Start]=true; c.update(i,s,.05); i={}; c.update(i,s,.06);
-    i.held[Right]=i.held[Up]=true; c.update(i,s,.07);
+    i.held[metaButton]=i.held[Right]=i.held[Up]=true; c.update(i,s,.07);
     check(s.octave==5&&s.quantize==Quantize::All,"settings keep their navigation and value controls");
 }
+static void capoControls() {
+    auto tap=[](Controller& c,Settings& s,Input i,Button b,double& t) {
+        i.held[metaButton]=true; c.update(i,s,t+=.01); i.held[b]=true; auto e=c.update(i,s,t+=.01);
+        i.held[b]=false; c.update(i,s,t+=.01); i.held[metaButton]=false; c.update(i,s,t+=.01); return e;
+    };
+    for(Mode mode:{Mode::Guitar,Mode::Expressive,Mode::Keys}) {
+        Settings s; s.mode=mode; Controller c; double t=0; Input i;
+        for(int fret=1;fret<=2;++fret) tap(c,s,i,Left,t);
+        check(s.capo==2&&s.root==0&&c.performanceSettings(s).root==0,"Fn+Left moves the capo up a fret without changing the key");
+        check(scaleNote(0,c.performanceSettings(s))==62,"every pitched instrument sounds two semitones higher at capo 2");
+        check(guitarNote(chordBanks[0][0],0,c.performanceSettings(s))==chordBanks[0][0].notes[0]+2,"capo 2 raises every string by two frets");
+        check(chordLabel(chordBanks[0][0],s)=="C","chord names keep the fingered shape under a capo");
+        s.noteDisplay=NoteDisplay::Numbered;
+        check(chordLabel(chordBanks[0][0],s)=="1"&&noteLabel(62,s).text=="1","numbered notation keeps the degrees under a capo");
+        s.noteDisplay=NoteDisplay::Names;
+        i.held[Left]=true; c.update(i,s,t+=.01);
+        check(scaleNote(0,c.performanceSettings(s))==63&&s.capo==2,"a held Left adds a temporary semitone above the capo");
+        i={}; c.update(i,s,t+=.01);
+        tap(c,s,i,Right,t);
+        check(s.capo==1,"Fn+Right moves the capo down a fret");
+        tap(c,s,i,Right,t); tap(c,s,i,Right,t);
+        check(s.capo==0,"the capo stops at the open position");
+    }
+    Settings s; Controller c; double t=0; Input i;
+    for(int n=0;n<maxCapo+3;++n) tap(c,s,i,Left,t);
+    check(s.capo==maxCapo,"the capo stops at the eleventh fret");
+    s.capo=3; check(saveSettings("capo-settings.cfg",s)&&loadSettings("capo-settings.cfg").capo==3,"the capo survives reopening");
+    std::remove("capo-settings.cfg");
+    // Fn pressed over a held Left converts the temporary semitone into the capo.
+    Settings held; held.mode=Mode::Keys; Controller k; Input in; in.held[A]=in.held[Left]=true;
+    auto first=k.update(in,held,.01);
+    in.held[metaButton]=true; k.update(in,held,.02);
+    check(held.capo==1&&k.performanceSettings(held).root==0&&scaleNote(0,k.performanceSettings(held))==61,"Fn after a held Left fixes the semitone as capo 1");
+    in.held[metaButton]=false; auto later=k.update(in,held,.03);
+    check(!has(later,EventType::NoteOn)&&first.data[0].note==61,"converting to a capo keeps the held note's pitch");
+    // Fn+Right adjusts the capo without starting a waiting take.
+    Settings armed; armed.mode=Mode::Keys; armed.capo=2; Controller a; Input r; r.held[metaButton]=true; a.update(r,armed,.01);
+    r.held[Right]=true; auto events=a.update(r,armed,.02);
+    bool cue=false; for(size_t n=0;n<events.count;++n) cue|=events.data[n].type==EventType::Loop&&events.data[n].id==int(LoopCommand::Cue);
+    check(armed.capo==1&&!cue,"Fn+Right lowers the capo and never acts as the recording rest cue");
+}
 int main() {
-    metaOctaveControls(); faceButtonLayout(); semitoneControls(); muteAndExit(); modeChanges(); wheelStability(); damagedSettings(); settingsFailures(); inputRecovery(); releaseTone(); globalStop(); levels(); dynamicsAndMelodyLevels(); randomPerformance();
+    metaOctaveControls(); capoControls(); faceButtonLayout(); semitoneControls(); muteAndExit(); modeChanges(); wheelStability(); damagedSettings(); settingsFailures(); inputRecovery(); releaseTone(); globalStop(); levels(); dynamicsAndMelodyLevels(); randomPerformance();
     std::printf("Audit: %d checks, %d failures\n",checks,failures);
     return failures?1:0;
 }
